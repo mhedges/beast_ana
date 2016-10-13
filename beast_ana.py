@@ -5,18 +5,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from math import sqrt
+
 from matplotlib import rc
 
 from rootpy.plotting import Hist, Hist2D
 from rootpy.plotting.style import set_style
-import rootpy.plotting.root2matplotlib as rplt
-
 from root_numpy import root2rec, hist2array
 from ROOT import TFile, TH1F
 
+import rootpy.plotting.root2matplotlib as rplt
+
+
 from os.path import expanduser
 
-np.set_printoptions(suppress=True, precision=2)
+#np.set_printoptions(suppress=True, precision=2)
 
 def run_names(run_name):
     LER_Beamsize = []
@@ -30,7 +33,7 @@ def run_names(run_name):
     HER_Toushek = []
     LER_Toushek = []
 
-    HER_Chromaicity = []
+    HER_Chromaticity = []
 
     HER_Injection = []
     LER_Injection = []
@@ -44,17 +47,167 @@ def run_names(run_name):
     elif run_name == 'HER_ToushekTPC': return HER_ToushekTPC
 
 
-def rate_vs_beamsize():
-    stuff = 0
+def rate_vs_beamsize(datapath):
+    runs = run_names('LER_ToushekTPC')
+
+    avg_rates = []
+    avg_inv_beamsizes = []
+    invbs_errs = []
+    rate_errs = []
+
+    #rate_vs_beamsize = []
+    #rate_vs_beamsize_tpc3 = []
+    #rate_vs_beamsize_tpc4 = []
+
+    for f in os.listdir(datapath):
+        if f not in runs: continue
+        ifile = datapath
+        ifile += f
+
+        rfile = TFile(ifile)
+        tree = rfile.Get('tout')
+        test = str(tree)
+        if (test == '<ROOT.TObject object at 0x(nil)>' or tree.GetEntries() == 
+                0): continue
+
+        print(ifile)
+
+        data = root2rec(ifile)
+
+        print(set(data.subrun))
+        input('well?')
+
+        run_avg_rate = []
+        run_avg_beamsize = []
+
+        #counter_3 = 0
+        #counter_4 = 0
+
+        neutron_counter = 0
+        #sizes = []
+        timestamps = []
+
+        for event in data:
+            if event.subrun != 0 :
+                if event.SKB_LER_beamSize_xray_Y[0] > 0. :
+                    run_avg_beamsize.append(1./event.SKB_LER_beamSize_xray_Y[0])
+                subrun = True
+                tpc3_neutrons = event.TPC3_PID_neutrons
+                tpc4_neutrons = event.TPC4_PID_neutrons
+
+                for i in range(len(tpc3_neutrons)):
+                    if tpc3_neutrons[i] == 1 :
+                        neutron_counter += 1
+                        timestamps.append(event.ts)
+
+                for k in range(len(tpc4_neutrons)):
+                    if tpc4_neutrons[k] == 1 :
+                        neutron_counter += 1
+                        timestamps.append(event.ts)
+
+            elif event.subrun == 0 and subrun == True :
+                if neutron_counter == 0 : continue
+
+                if len(timestamps) > 1 :
+                    t_range = max(timestamps) - min(timestamps)
+                else : t_range = 1
+
+                rate = float(neutron_counter)/float(t_range)
+                #run_avg_rate.append(rate)
+
+                if rate == 1 :
+                    subrun = False
+                    timestamps = []
+                    neutron_counter = 0
+                    run_avg_rate = []
+                    run_avg_beamsize = []
+                    continue
+
+                avg_rates.append(rate)
+                rate_errs.append(sqrt(rate*t_range)/t_range)
+                print('Rate and err:', rate, sqrt(rate*t_range)/t_range)
+
+                run_avg_beamsize = np.array(run_avg_beamsize)
+                avg_inv_beamsizes.append(np.mean(run_avg_beamsize))
+                invbs_errs.append(np.std(run_avg_beamsize))
+                print('Inv_bs and err:', np.mean(run_avg_beamsize), 
+                        np.std(run_avg_beamsize))
+
+                print('Number of neutrons in subrun = %i' % neutron_counter)
+                print('Time range:', t_range)
+                #print(max(timestamps), min(timestamps))
+                print('Ending at event number', event.event)
+                subrun = False
+                timestamps = []
+                neutron_counter = 0
+                run_avg_rate = []
+                run_avg_beamsize = []
+                
+            else : continue
+
+        #if neutron_counter == 0 : continue
+
+        if len(timestamps) > 1 :
+            t_range = max(timestamps) - min(timestamps)
+        else : t_range = 1
+
+        rate = float(neutron_counter)/float(t_range)
+
+        if rate == 1 :
+            timestamps = []
+            neutron_counter = 0
+            run_avg_rate = []
+            run_avg_beamsize = []
+
+        #run_avg_rate.append(rate)
+        avg_rates.append(rate)
+
+        print('Number of neutrons in subrun = %i' % neutron_counter)
+        print('Time range:', t_range)
+        #print(max(timestamps), min(timestamps))
+        print('Ending at event number', event.event)
+
+        #print('Avg rates:\n', run_avg_rate)
+        run_avg_beamsize = np.array(run_avg_beamsize)
+        avg_inv_beamsizes.append(np.mean(run_avg_beamsize))
+        invbs_errs.append(np.std(run_avg_beamsize))
+
+        rate_errs.append(sqrt(rate*t_range)/t_range)
+        print('Rate and err:', rate, sqrt(rate*t_range)/t_range)
+        print('Inv_bs and err:', np.mean(run_avg_beamsize), 
+                np.std(run_avg_beamsize))
+
+        input('well?')
+
+        run_avg_rate = []
+        run_avg_beamsize = []
+        timestamps = []
+        neutron_counter = 0
 
 
-def neutron_study():
-    stuff = 0
+    avg_beamsize = np.array(avg_inv_beamsizes)
+    avg_rate = np.array(avg_rates)
+    invbs_errs = np.array(invbs_errs)
+    rate_errs = np.array(rate_errs)
 
-def main():
-    home = expanduser('~')
-    datapath = str(home) + '/BEAST/data/v1/'
+    print('Inverse beam size values:\n',avg_beamsize)
+    print('Inv_bs error values:\n', invbs_errs)
+    print('Neutron rate values:\n', avg_rate)
+    print('Rate error values:\n', rate_errs)
+    bs_errbars = np.array([0.])
 
+    f = plt.figure()
+    ax1 = f.add_subplot(111)
+    #ax1.scatter(avg_beamsize, avg_rate)
+    ax1.errorbar(avg_beamsize, avg_rate, yerr=rate_errs, fmt='o')
+    #ax1.errorbar(avg_beamsize, avg_rate, xerr=invbs_errs, yerr=rate_errs, 
+    #        fmt='o')
+    ax1.set_xlabel('Beamsize ($\mu$$m$$^{-1}$)')
+    ax1.set_ylabel('Fast neutron rate (Hz)')
+    plt.show()
+
+
+def neutron_study(datapath):
     tpc3_phis = []
     tpc3_thetas = []
     tpc3_energies = []
@@ -80,10 +233,6 @@ def main():
     tpc4_thetas_notbp = []
 
     beamsize = []
-
-    rate_vs_beamsize = []
-    rate_vs_beamsize_tpc3 = []
-    rate_vs_beamsize_tpc4 = []
 
     runs = run_names('LER_ToushekTPC')
     #runs = run_names('HER_ToushekTPC')
@@ -121,10 +270,6 @@ def main():
                     phi = event.TPC3_phi[i]
                     theta = event.TPC3_theta[i]
 
-                    size = event.SKB_LER_beamSize_xray_Y[0]
-                    if size < 300 :
-                        beamsize.append(event.SKB_LER_beamSize_xray_Y[0])
-                    
                     ### Check if theta and phi values are absurdly wrong
                     if abs(phi) > 720. or abs(theta) > 720.: continue
 
@@ -461,6 +606,14 @@ def main():
         #if 'TPC3_N_neutrons' in event.dtype.names:
         #    print(len(event.TPC3_PID_neutrons), 'Event number', event.event)
         #if event.TPC3_N_neutrons[0] > 0:
+
+
+def main():
+    home = expanduser('~')
+    datapath = str(home) + '/BEAST/data/v1/'
+    #neutron_study(datapath)
+    rate_vs_beamsize(datapath)
+
 
 if __name__ == "__main__":
     main()
