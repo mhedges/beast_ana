@@ -1,5 +1,5 @@
 import os
-import seaborn
+import seaborn as sns
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,7 +9,7 @@ from math import sqrt
 
 from matplotlib import rc
 
-from rootpy.plotting import Hist, Hist2D
+from rootpy.plotting import Hist, Hist2D, Graph
 from rootpy.plotting.style import set_style
 from root_numpy import root2rec, hist2array
 from ROOT import TFile, TH1F
@@ -20,6 +20,8 @@ import rootpy.plotting.root2matplotlib as rplt
 from os.path import expanduser
 
 #np.set_printoptions(suppress=True, precision=2)
+
+sns.set(color_codes=True)
 
 def run_names(run_name):
     LER_Beamsize = []
@@ -115,7 +117,7 @@ def rate_vs_beamsize(datapath):
                 rate = float(neutron_counter)/float(t_range)
                 #run_avg_rate.append(rate)
 
-                if rate == 1 :
+                if rate == 1 or rate == 0 :
                     subrun = False
                     timestamps = []
                     neutron_counter = 0
@@ -129,7 +131,7 @@ def rate_vs_beamsize(datapath):
 
                 run_avg_beamsize = np.array(run_avg_beamsize)
                 avg_inv_beamsizes.append(np.mean(run_avg_beamsize))
-                invbs_errs.append(np.std(run_avg_beamsize))
+                invbs_errs.append(np.std(run_avg_beamsize)/np.sqrt(len(run_avg_beamsize)))
                 print('Inv_bs and err:', np.mean(run_avg_beamsize), 
                         np.std(run_avg_beamsize))
 
@@ -145,7 +147,7 @@ def rate_vs_beamsize(datapath):
                 
             else : continue
 
-        #if neutron_counter == 0 : continue
+        if neutron_counter == 0 : continue
 
         if len(timestamps) > 1 :
             t_range = max(timestamps) - min(timestamps)
@@ -153,11 +155,12 @@ def rate_vs_beamsize(datapath):
 
         rate = float(neutron_counter)/float(t_range)
 
-        if rate == 1 :
+        if rate == 1 or rate == 0 :
             timestamps = []
             neutron_counter = 0
             run_avg_rate = []
             run_avg_beamsize = []
+            continue
 
         #run_avg_rate.append(rate)
         avg_rates.append(rate)
@@ -170,14 +173,14 @@ def rate_vs_beamsize(datapath):
         #print('Avg rates:\n', run_avg_rate)
         run_avg_beamsize = np.array(run_avg_beamsize)
         avg_inv_beamsizes.append(np.mean(run_avg_beamsize))
-        invbs_errs.append(np.std(run_avg_beamsize))
+        invbs_errs.append(np.std(run_avg_beamsize)/np.sqrt(len(run_avg_beamsize)))
 
         rate_errs.append(sqrt(rate*t_range)/t_range)
         print('Rate and err:', rate, sqrt(rate*t_range)/t_range)
         print('Inv_bs and err:', np.mean(run_avg_beamsize), 
                 np.std(run_avg_beamsize))
 
-        input('well?')
+        #input('well?')
 
         run_avg_rate = []
         run_avg_beamsize = []
@@ -196,14 +199,49 @@ def rate_vs_beamsize(datapath):
     print('Rate error values:\n', rate_errs)
     bs_errbars = np.array([0.])
 
+    ### Convert beamsize and rate arrays into pandas dataframe for fun
+    arr = np.array([[0.0,0.0]]*len(avg_beamsize))
+    df = pd.DataFrame({'Average Beamsize': avg_beamsize,
+                       'Average Rate'    : avg_rate, })
+    print(df)
+    #input('well?')
+
+    ### Try Seaborn regplot()
+    sns.regplot(x='Average Beamsize', y='Average Rate', data=df, ci=99)
+    input('well?')
+
+    ### Fit data with Numpy for plotting the fit results (compare with ROOT)
+    fit = np.polynomial.polynomial.polyfit(avg_beamsize, avg_rate, deg=1)
+    print('Fit results:\n', fit)
+    
+    x_new = np.linspace(np.amin(avg_beamsize), np.amax(avg_beamsize),
+            num=len(avg_beamsize)*10)
+
+    print(fit, x_new)
+    ffit = np.polynomial.polynomial.polyval(x_new, fit)
+    
+    ### Put points into TGraph2D from rootpy for param errors and comparison
+    g = Graph()
+    n = len(avg_beamsize)
+    for i in range(n):
+        g.SetPoint(i, avg_beamsize[i], avg_rate[i])
+
+    g.Fit('pol1')
+    input('well?')
+
+    intercept_err = 0.0349174
+    slope_err = 2.37001
+
     f = plt.figure()
     ax1 = f.add_subplot(111)
-    #ax1.scatter(avg_beamsize, avg_rate)
-    ax1.errorbar(avg_beamsize, avg_rate, yerr=rate_errs, fmt='o')
-    #ax1.errorbar(avg_beamsize, avg_rate, xerr=invbs_errs, yerr=rate_errs, 
-    #        fmt='o')
+    ax1.errorbar(avg_beamsize, avg_rate, xerr=invbs_errs, yerr=rate_errs, 
+            fmt='o')
     ax1.set_xlabel('Beamsize ($\mu$$m$$^{-1}$)')
     ax1.set_ylabel('Fast neutron rate (Hz)')
+    plt.plot(x_new, ffit, color='r', label = 'y = (%f ± %f) + x * (%f ± %f)' % 
+        (fit[0], intercept_err, fit[1], slope_err))
+    #plt.fill_between(x_new, x_new-slope_err, x_new+slope_err)
+    plt.legend(loc='upper left', frameon=True)
     plt.show()
 
 
@@ -433,6 +471,10 @@ def neutron_study(datapath):
     plt.show()
     input('well?')
 
+    #arr3 = np.array([[0.0,0.0]]*len(tpc3_sumtot_array))
+    #df3 = pd.DataFrame({'Average Beamsize': avg_beamsize,
+    #                   'Average Rate'    : avg_rate, })
+
     #df = pd.DataFrame(
     #        {'Track Length': tpc3_tlengths_array, 'Sum TOT':tpc3_sumtot_array},
     #        index = ['Event Number'], columns = ['Track Length', 'Sum TOT'])
@@ -611,8 +653,8 @@ def neutron_study(datapath):
 def main():
     home = expanduser('~')
     datapath = str(home) + '/BEAST/data/v1/'
-    #neutron_study(datapath)
     rate_vs_beamsize(datapath)
+    #neutron_study(datapath)
 
 
 if __name__ == "__main__":
