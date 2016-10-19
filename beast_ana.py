@@ -1,5 +1,5 @@
 import os
-import seaborn as sns
+#import seaborn as sns
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,7 +12,7 @@ from matplotlib import rc
 from rootpy.plotting import Hist, Hist2D, Graph
 from rootpy.plotting.style import set_style
 from root_numpy import root2rec, hist2array
-from ROOT import TFile, TH1F
+from ROOT import TFile, TH1F, gROOT
 
 import rootpy.plotting.root2matplotlib as rplt
 
@@ -21,7 +21,9 @@ from os.path import expanduser
 
 #np.set_printoptions(suppress=True, precision=2)
 
-sns.set(color_codes=True)
+#sns.set(color_codes=True)
+
+gROOT.LoadMacro('Belle2Style.C')
 
 def run_names(run_name):
     LER_Beamsize = []
@@ -94,6 +96,9 @@ def rate_vs_beamsize(datapath):
                 if event.SKB_LER_beamSize_xray_Y[0] > 0. :
                     run_avg_beamsize.append(1./event.SKB_LER_beamSize_xray_Y[0])
                 subrun = True
+                #tpc3_neutrons = event.TPC3_PID_neutrons
+                #tpc4_neutrons = event.TPC4_PID_neutrons
+
                 tpc3_neutrons = event.TPC3_PID_neutrons
                 tpc4_neutrons = event.TPC4_PID_neutrons
 
@@ -207,8 +212,8 @@ def rate_vs_beamsize(datapath):
     #input('well?')
 
     ### Try Seaborn regplot()
-    sns.regplot(x='Average Beamsize', y='Average Rate', data=df, ci=99)
-    input('well?')
+    #sns.regplot(x='Average Beamsize', y='Average Rate', data=df, ci=99)
+    #input('well?')
 
     ### Fit data with Numpy for plotting the fit results (compare with ROOT)
     fit = np.polynomial.polynomial.polyfit(avg_beamsize, avg_rate, deg=1)
@@ -652,7 +657,13 @@ def neutron_study(datapath):
 
 def main():
     home = expanduser('~')
+
+    ### Use BEAST v1 data
     datapath = str(home) + '/BEAST/data/v1/'
+    
+    ### Use BEAST v2 data
+    #datapath = str(home) + '/BEAST/data/v2/'
+
     rate_vs_beamsize(datapath)
     #neutron_study(datapath)
 
