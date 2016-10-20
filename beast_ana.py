@@ -15,6 +15,7 @@ from root_numpy import root2rec, hist2array
 from ROOT import TFile, TH1F, gROOT
 
 import rootpy.plotting.root2matplotlib as rplt
+import ROOT
 
 
 from os.path import expanduser
@@ -23,7 +24,16 @@ from os.path import expanduser
 
 #sns.set(color_codes=True)
 
-gROOT.LoadMacro('Belle2Style.C')
+### Set matplotlib style
+# Atlas style
+#import atlas_style_mpl
+#style = atlas_style_mpl.style_mpl()
+#plt.style.use(style)
+
+# Belle2 Style
+import belle2style_mpl
+style = belle2style_mpl.b2_style_mpl()
+plt.style.use(style)
 
 def run_names(run_name):
     LER_Beamsize = []
@@ -78,8 +88,8 @@ def rate_vs_beamsize(datapath):
 
         data = root2rec(ifile)
 
-        print(set(data.subrun))
-        input('well?')
+        #print(set(data.subrun))
+        #input('well?')
 
         run_avg_rate = []
         run_avg_beamsize = []
@@ -237,14 +247,16 @@ def rate_vs_beamsize(datapath):
     intercept_err = 0.0349174
     slope_err = 2.37001
 
+    color = 'black'
     f = plt.figure()
     ax1 = f.add_subplot(111)
     ax1.errorbar(avg_beamsize, avg_rate, xerr=invbs_errs, yerr=rate_errs, 
-            fmt='o')
+            fmt='o', capsize=0, color = 'black')
     ax1.set_xlabel('Beamsize ($\mu$$m$$^{-1}$)')
     ax1.set_ylabel('Fast neutron rate (Hz)')
-    plt.plot(x_new, ffit, color='r', label = 'y = (%f ± %f) + x * (%f ± %f)' % 
-        (fit[0], intercept_err, fit[1], slope_err))
+    plt.plot(x_new, ffit, color = color, label = ('y = (%f ± %f) +\
+ x * (%f ± %f)' % (fit[0], intercept_err, fit[1], slope_err)))
+
     #plt.fill_between(x_new, x_new-slope_err, x_new+slope_err)
     plt.legend(loc='upper left', frameon=True)
     plt.show()
@@ -472,9 +484,9 @@ def neutron_study(datapath):
 
     beamsize = np.array(beamsize)
 
-    plt.hist(beamsize, bins=10)
-    plt.show()
-    input('well?')
+    #plt.hist(beamsize, bins=10)
+    #plt.show()
+    #input('well?')
 
     #arr3 = np.array([[0.0,0.0]]*len(tpc3_sumtot_array))
     #df3 = pd.DataFrame({'Average Beamsize': avg_beamsize,
@@ -501,14 +513,14 @@ def neutron_study(datapath):
     theta_bins = 18
     #theta_bins = int(180/10.)
 
-    #
-    #h1 = Hist(phi_bins, -90., 90., markersize=0)
+    #h1 = Hist(phi_bins, -90., 90.)
     #h1.fill_array(tpc3phi_array, tpc3_sumtot_array)
     #h2 = Hist(phi_bins, -90., 90.)
     #h2.fill_array(tpc3phi_array)
-    ##h1.Draw()
-    ##print(h1.GetEntries())
-    ##input('well?')
+    #h1.xaxis.SetTitle('$\phi$ (Degrees)')
+    #h1.Draw()
+    #print('Printing hist of tpc3 phis')
+    #input('well?')
     ##h2.Draw()
     ##print(h2.GetEntries())
     ##input('well?')
@@ -521,18 +533,21 @@ def neutron_study(datapath):
     #div=rplt.hist(h1, range=[-180.180])
     #input('well?')
 
-
+    ### Begin plotting
+    color = 'black'
     f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey=True)
     ax1.hist(tpc3phi_array, phi_bins, range=[-100,100], weights = 
-            tpc3_sumtot_array)
+            tpc3_sumtot_array, color = color)
     ax1.set_title('TPC3 Energy Weighted Neutron Recoil $\phi$')
     ax3.hist(tpc4phi_array, phi_bins, range=[-100,100], weights = 
-            tpc4_sumtot_array)
+            tpc4_sumtot_array, color = color)
     ax3.set_xlabel('Degrees')
     ax3.set_title('TPC4 Energy Weighted Neutron Recoil $\phi$')
-    ax2.hist(tpc3theta_array, theta_bins, weights = tpc3_sumtot_array)
+    ax2.hist(tpc3theta_array, theta_bins, weights = tpc3_sumtot_array,
+            color = color)
     ax2.set_title('TPC3 Neutron Recoil $\\theta$')
-    ax4.hist(tpc4theta_array, theta_bins, weights = tpc4_sumtot_array)
+    ax4.hist(tpc4theta_array, theta_bins, weights = tpc4_sumtot_array,
+            color = color)
     ax4.set_title('TPC4 Neutron Recoil $\\theta$')
     ax4.set_xlabel('Degrees')
 
@@ -551,59 +566,61 @@ def neutron_study(datapath):
     f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', 
             sharey='col')
     ax1.hist(tpc3phi_array, phi_bins, range=[-100,100], weights = 
-            tpc3_sumtot_array)
+            tpc3_sumtot_array, color = color)
     ax1.set_title('TPC3 Energy Weighted Neutron Recoil $\phi$')
     ax3.hist(tpc4phi_array, phi_bins, range=[-100,100], weights = 
-            tpc4_sumtot_array)
+            tpc4_sumtot_array, color = color)
     ax3.set_xlabel('Degrees')
     ax3.set_title('TPC4 Energy Weighted Neutron Recoil $\phi$')
     ax2.hist(tpc3theta_array_beampipe, theta_bins, weights = 
-    tpc3_sumtot_array_bp)
+    tpc3_sumtot_array_bp, color = color)
     ax2.set_title('TPC3 Neutron Recoil $\\theta$ (Beampipe cut)')
     ax4.hist(tpc4theta_array_beampipe, theta_bins, weights = 
-            tpc4_sumtot_array_bp)
+            tpc4_sumtot_array_bp, color = color)
     ax4.set_title('TPC4 Neutron Recoil $\\theta$ (Beampipe cut)')
     ax4.set_xlabel('Degrees')
 
     f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', 
             sharey='col')
     ax1.hist(tpc3phi_array, phi_bins, range=[-100,100], weights = 
-            tpc3_sumtot_array)
+            tpc3_sumtot_array, color = color)
     ax1.set_title('TPC3 Energy Weighted Neutron Recoil $\phi$')
     ax3.hist(tpc4phi_array, phi_bins, range=[-100,100], weights = 
-            tpc4_sumtot_array)
+            tpc4_sumtot_array, color = color)
     ax3.set_xlabel('Degrees')
     ax3.set_title('TPC4 Energy Weighted Neutron Recoil $\phi$')
     ax2.hist(tpc3theta_array_notbp, theta_bins*5, weights = 
-            tpc3_sumtot_array_notbp)
+            tpc3_sumtot_array_notbp, color = color)
     ax2.set_title('TPC3 Neutron Recoil $\\theta$ (Outside beampipe)')
     ax4.hist(tpc4theta_array_notbp, theta_bins*5, weights = 
-            tpc4_sumtot_array_notbp)
+            tpc4_sumtot_array_notbp, color = color)
     ax4.set_title('TPC4 Neutron Recoil $\\theta$ (Outside beampipe)')
     ax4.set_xlabel('Degrees')
 
     g, (bx1, bx2 ) = plt.subplots(1, 2, sharex=True, sharey=True)
-    bx1.scatter(tpc3_tlengths_array, tpc3_sumtot_array)
+    bx1.scatter(tpc3_tlengths_array, tpc3_sumtot_array, color = color)
     bx1.set_title('TPC3 Track Length vs Sum TOT')
     bx1.set_ylabel('SumTOT')
     bx1.set_xlabel('$\mu$m')
-    bx2.scatter(tpc4_tlengths_array, tpc4_sumtot_array)
+    bx2.scatter(tpc4_tlengths_array, tpc4_sumtot_array, color = color)
     bx2.set_title('TPC4 Track Length vs Sum TOT')
     bx2.set_xlabel('$\mu$m')
     
     h, ((cx1, cx2), (cx3, cx4)) = plt.subplots(2, 2, sharex=True, sharey=True)
-    cx1.scatter(tpc3_tlengths_array_bp, tpc3_sumtot_array_bp)
+    cx1.scatter(tpc3_tlengths_array_bp, tpc3_sumtot_array_bp, color = color)
     cx1.set_title('TPC3 Track Length vs Sum TOT (beampipe)')
     cx1.set_xlim(-5000., 35000.)
     cx1.set_ylabel('SumTOT')
-    cx3.scatter(tpc3_tlengths_array_notbp, tpc3_sumtot_array_notbp)
+    cx3.scatter(tpc3_tlengths_array_notbp, tpc3_sumtot_array_notbp,
+            color = color)
     cx3.set_title('TPC3 Track Length vs Sum TOT (not beampipe)')
     cx3.set_xlabel('$\mu$m')
     cx3.set_ylabel('SumTOT')
-    cx2.scatter(tpc4_tlengths_array_bp, tpc4_sumtot_array_bp)
+    cx2.scatter(tpc4_tlengths_array_bp, tpc4_sumtot_array_bp, color = color)
     cx2.set_title('TPC4 Track Length vs Sum TOT (beampipe)')
     cx2.set_xlim(-5000., 35000.)
-    cx4.scatter(tpc4_tlengths_array_notbp, tpc4_sumtot_array_notbp)
+    cx4.scatter(tpc4_tlengths_array_notbp, tpc4_sumtot_array_notbp,
+            color = color)
     cx4.set_title('TPC4 Track Length vs Sum TOT (not beampipe)')
     cx4.set_xlabel('$\mu$m')
     #bx1 = plt.scatter(tpc3_tlengths_array, tpc3_sumtot_array)
@@ -665,7 +682,7 @@ def main():
     #datapath = str(home) + '/BEAST/data/v2/'
 
     rate_vs_beamsize(datapath)
-    #neutron_study(datapath)
+    neutron_study(datapath)
 
 
 if __name__ == "__main__":
