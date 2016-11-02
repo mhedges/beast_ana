@@ -1,5 +1,4 @@
 import os
-#import seaborn as sns
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,15 +13,18 @@ from rootpy.plotting.style import set_style
 from root_numpy import root2rec, hist2array
 from ROOT import TFile, TH1F, gROOT
 
+import iminuit, probfit
+
 import rootpy.plotting.root2matplotlib as rplt
 import ROOT
 
-
 from os.path import expanduser
+
+import seaborn as sns
+sns.set(color_codes=True)
 
 #np.set_printoptions(suppress=True, precision=2)
 
-#sns.set(color_codes=True)
 
 ### Set matplotlib style
 # Atlas style
@@ -31,10 +33,19 @@ from os.path import expanduser
 #plt.style.use(style)
 
 # Belle2 Style
-import belle2style_mpl
-style = belle2style_mpl.b2_style_mpl()
-plt.style.use(style)
+#import belle2style_mpl
+#style = belle2style_mpl.b2_style_mpl()
+#plt.style.use(style)
 
+###############################################################################
+
+
+# Define 2D line for fitting
+def line(x, m, b):
+    return m * x + b
+
+
+# Get run names for various studies
 def run_names(run_name):
     LER_Beamsize = []
 
@@ -61,6 +72,7 @@ def run_names(run_name):
     elif run_name == 'HER_ToushekTPC': return HER_ToushekTPC
 
 
+# Analyze neutron rate vs beamsize for studying the Toushek effect
 def rate_vs_beamsize(datapath):
     runs = run_names('LER_ToushekTPC')
 
@@ -68,10 +80,6 @@ def rate_vs_beamsize(datapath):
     avg_inv_beamsizes = []
     invbs_errs = []
     rate_errs = []
-
-    #rate_vs_beamsize = []
-    #rate_vs_beamsize_tpc3 = []
-    #rate_vs_beamsize_tpc4 = []
 
     for f in os.listdir(datapath):
         if f not in runs: continue
@@ -218,50 +226,47 @@ def rate_vs_beamsize(datapath):
     arr = np.array([[0.0,0.0]]*len(avg_beamsize))
     df = pd.DataFrame({'Average Beamsize': avg_beamsize,
                        'Average Rate'    : avg_rate, })
-    print(df)
-    #input('well?')
 
     ### Try Seaborn regplot()
     #sns.regplot(x='Average Beamsize', y='Average Rate', data=df, ci=99)
     #input('well?')
 
-    ### Fit data with Numpy for plotting the fit results (compare with ROOT)
-    fit = np.polynomial.polynomial.polyfit(avg_beamsize, avg_rate, deg=1)
-    print('Fit results:\n', fit)
-    
-    x_new = np.linspace(np.amin(avg_beamsize), np.amax(avg_beamsize),
-            num=len(avg_beamsize)*10)
-
-    print(fit, x_new)
-    ffit = np.polynomial.polynomial.polyval(x_new, fit)
-    
     ### Put points into TGraph2D from rootpy for param errors and comparison
     g = Graph()
     n = len(avg_beamsize)
     for i in range(n):
         g.SetPoint(i, avg_beamsize[i], avg_rate[i])
+        #g.SetPointError(i, avg_beamsize[i], avg_beamsize[i], avg_rate[i] -
+        #        rate_errs[i], avg_rate[i] + rate_errs[i])
+        g.SetPointError(i, invbs_errs[i], invbs_errs[i], rate_errs[i], rate_errs[i])
 
     g.Fit('pol1')
+
+    ### Use probfit and compare with ROOT
+    chi2 = probfit.Chi2Regression(line, avg_beamsize, avg_rate, rate_errs)
+    minu = iminuit.Minuit(chi2)
+    minu.migrad()
+    pars = minu.values
+    p_errs = minu.errors
+    print(pars, p_errs)
     input('well?')
 
-    intercept_err = 0.0349174
-    slope_err = 2.37001
+    fline = np.linspace(0, np.max(avg_beamsize), len(avg_beamsize))
 
     color = 'black'
     f = plt.figure()
     ax1 = f.add_subplot(111)
-    ax1.errorbar(avg_beamsize, avg_rate, xerr=invbs_errs, yerr=rate_errs, 
-            fmt='o', capsize=0, color = 'black')
+    chi2.draw(minu)
+    ax1.errorbar(avg_beamsize, avg_rate, yerr=rate_errs, fmt='o', capsize=0,
+            color='b')
     ax1.set_xlabel('Beamsize ($\mu$$m$$^{-1}$)')
     ax1.set_ylabel('Fast neutron rate (Hz)')
-    plt.plot(x_new, ffit, color = color, label = ('y = (%f ± %f) +\
- x * (%f ± %f)' % (fit[0], intercept_err, fit[1], slope_err)))
-
-    #plt.fill_between(x_new, x_new-slope_err, x_new+slope_err)
-    plt.legend(loc='upper left', frameon=True)
+    #ax1.set_xlim([0.0,0.024])
+    #ax1.set_ylim([0.0,0.5])
     plt.show()
 
 
+# Study neutron angular distributions
 def neutron_study(datapath):
     tpc3_phis = []
     tpc3_thetas = []
@@ -672,17 +677,87 @@ def neutron_study(datapath):
         #if event.TPC3_N_neutrons[0] > 0:
 
 
+def energy_study(ifile):
+    data = root2rec(ifile)
+
+    all_e = []
+    n_e = []
+
+    for event in data:
+        all_e.append(event.e_sum)
+        if event.neutron == 1 : n_e.append(event.e_sum)
+    all_e = np.array(all_e)
+    n_e = np.array(n_e)
+    #print(all_e)
+    #print(n_e)
+
+    max_e = np.max(all_e)
+    hist_all = Hist(100, 0., max_e)
+    hist_all.fill_array(all_e)
+    #hist_all.Draw()
+    #input('well?')
+    #input('well?')
+    #input('well?')
+    #input('well?')
+    #input('well?')
+    np_hist_all = np.histogram(all_e, bins=100, range=[0,max_e])
+
+    max_ne = np.max(n_e)
+    hist_n = Hist(100,0.,max_ne)
+    hist_n.fill_array(n_e)
+    #hist_n.Draw()
+    #input('well?')
+    #input('well?')
+    #input('well?')
+    #input('well?')
+    np_hist_n = np.histogram(n_e, bins=100, range=[0,max_e])
+
+    print(np_hist_all,'\n',np_hist_n)
+
+    divided_e = np.array([0.]*100)
+    for i in range(100):
+        e_a = np_hist_all[0][i]
+        n_a = np_hist_n[0][i]
+        #print(e_a, n_a)
+        #input('well?')
+        #if n_a != 0 :
+        #    divided_e[i] = n_a/e_a
+        divided_e[i] = n_a/e_a if n_a != 0 else 0
+    print(divided_e)
+    input('well?')
+
+    hist_n.Divide(hist_all)
+    np_hist = hist2array(hist_n)
+    #hist_n.Draw()
+    #input('well?')
+    #input('well?')
+    #input('well?')
+    #input('well?')
+    #input('well?')
+    #input('well?')
+    #print(np_hist)
+
+    f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+    ax3.hist(all_e, bins = 100)
+    ax1.hist(n_e, bins = 100)
+    ax2.scatter(divided_e, np_hist_n[1])
+    plt.show()
+    #hist_n.Draw()
+    input('well?')
+
+
 def main():
     home = expanduser('~')
 
     ### Use BEAST v1 data
-    datapath = str(home) + '/BEAST/data/v1/'
+    #datapath = str(home) + '/BEAST/data/v1/'
     
     ### Use BEAST v2 data
-    #datapath = str(home) + '/BEAST/data/v2/'
+    datapath = str(home) + '/BEAST/data/v2/'
 
     rate_vs_beamsize(datapath)
-    neutron_study(datapath)
+    #neutron_study(datapath)
+    #energy_study('~/BEAST/data/TPC/tpc4_th50_data_cordir16_1464505200_skim.root')
 
 
 if __name__ == "__main__":
