@@ -501,6 +501,7 @@ def neutron_study(datapath):
                     tpc4_sumtot.append(event.TPC4_sumTOT[j])
                     tpc4_tlengths.append(event.TPC4_sumTOT[j]/event.TPC4_dEdx[j])
 
+                    if 80. < theta and theta < 100 : print(theta)
                     ### Select beampipe (+- 20 degrees)
                     if abs(phi) < 20.:
                         tpc4_thetas_beampipe.append(theta)
@@ -615,6 +616,46 @@ def neutron_study(datapath):
     ax4.set_title('TPC4 Neutron Recoil $\\theta$ (Outside beampipe)')
     ax4.set_xlabel('Degrees')
 
+    ### Plot theta and phi, unweighted
+    f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey=True)
+    ax1.hist(tpc3phi_array, phi_bins, range=[-100,100], color = color, histtype='step')
+    ax1.set_title('TPC3 Unweighted Neutron Recoil $\phi$')
+    ax3.hist(tpc4phi_array, phi_bins, range=[-100,100], color = color, histtype='step')
+    ax3.set_xlabel('Degrees')
+    ax3.set_title('TPC4 Unweighted Neutron Recoil $\phi$')
+    ax2.hist(tpc3theta_array, theta_bins, color = color, histtype='step')
+    ax2.set_title('TPC3 Neutron Recoil $\\theta$')
+    ax4.hist(tpc4theta_array, theta_bins, color = color, histtype='step')
+    ax4.set_title('TPC4 Neutron Recoil $\\theta$')
+    ax4.set_xlabel('Degrees')
+
+    f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', 
+            sharey='col')
+    ax1.hist(tpc3phi_array, phi_bins, range=[-100,100], color = color, histtype='step')
+    ax1.set_title('TPC3 Unweighted Neutron Recoil $\phi$')
+    ax3.hist(tpc4phi_array, phi_bins, range=[-100,100], color = color, histtype='step')
+    ax3.set_xlabel('Degrees')
+    ax3.set_title('TPC4 Unweighted Neutron Recoil $\phi$')
+    ax2.hist(tpc3theta_array_beampipe, theta_bins, color = color, histtype='step')
+    ax2.set_title('TPC3 Neutron Recoil $\\theta$ (Beampipe cut)')
+    ax4.hist(tpc4theta_array_beampipe, theta_bins, color = color, histtype='step')
+    ax4.set_title('TPC4 Neutron Recoil $\\theta$ (Beampipe cut)')
+    ax4.set_xlabel('Degrees')
+
+    f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', 
+            sharey='col')
+    ax1.hist(tpc3phi_array, phi_bins, range=[-100,100], color = color, histtype='step')
+    ax1.set_title('TPC3 Unweighted Neutron Recoil $\phi$')
+    ax3.hist(tpc4phi_array, phi_bins, range=[-100,100], color = color, histtype='step')
+    ax3.set_xlabel('Degrees')
+    ax3.set_title('TPC4 Uneighted Neutron Recoil $\phi$')
+    ax2.hist(tpc3theta_array_notbp, theta_bins, color = color, histtype='step')
+    ax2.set_title('TPC3 Neutron Recoil $\\theta$ (Outside beampipe)')
+    ax4.hist(tpc4theta_array_notbp, theta_bins, color = color, histtype='step')
+    ax4.set_title('TPC4 Neutron Recoil $\\theta$ (Outside beampipe)')
+    ax4.set_xlabel('Degrees')
+
+    ### Plot dE/dx
     g, (bx1, bx2 ) = plt.subplots(1, 2, sharex=True, sharey=True)
     bx1.scatter(tpc3_tlengths_array, tpc3_energies_array, color = color)
     bx1.set_title('TPC3 Track Length vs Sum Q')
@@ -705,6 +746,8 @@ def energy_study(datapath):
     p_e = []
     x_e = []
     others_e = []
+    n_3 = []
+    n_4 = []
     for f in os.listdir(datapath):
         if f not in runs: continue
         ifile = datapath
@@ -735,6 +778,7 @@ def energy_study(datapath):
                 # Neutrons
                 if(event.TPC3_PID_neutrons[i] == 1) :
                     n_e.append(event.TPC3_sumQ[i])
+                    n_3.append(event.TPC3_sumQ[i])
 
                 # Top alphas
                 if(event.TPC3_PID_alphas_top[i] == 1) :
@@ -772,6 +816,7 @@ def energy_study(datapath):
                 # Neutrons
                 if(event.TPC4_PID_neutrons[i] == 1) :
                     n_e.append(event.TPC4_sumQ[i])
+                    n_4.append(event.TPC4_sumQ[i])
 
                 # Top alphas
                 if(event.TPC4_PID_alphas_top[i] == 1) :
@@ -812,6 +857,9 @@ def energy_study(datapath):
     x_e = np.array(x_e)
     others_e = np.array(others_e)
 
+    n_3 = np.array(n_3)
+    n_4 = np.array(n_4)
+
     max_e = np.max(all_e)
     hist_all = Hist(100, 0., max_e)
     hist_all.fill_array(all_e)
@@ -831,6 +879,10 @@ def energy_study(datapath):
     np_hist_o = np.histogram(others_e, bins=100, range=[0,max_e])
 
     max_ne = np.max(n_e)
+
+    np_hist_n3 = np.histogram(n_3, bins=100, range=[0,max_ne])
+    np_hist_n4 = np.histogram(n_4, bins=100, range=[0,max_ne])
+
     hist_n = Hist(100,0.,max_ne)
     hist_n.fill_array(n_e)
     #hist_n.Draw()
@@ -850,6 +902,9 @@ def energy_study(datapath):
     divided_bins = np.array([0.]*100)
     div_errs = np.array([0.]*100)
 
+    n3_bins = np.array([0.]*100)
+    n4_bins = np.array([0.]*100)
+
     t_errs = np.array([0.]*100)
     b_errs = np.array([0.]*100)
     n_errs = np.array([0.]*100)
@@ -857,12 +912,16 @@ def energy_study(datapath):
     x_errs = np.array([0.]*100)
     o_errs = np.array([0.]*100)
 
+    n3_errs = np.array([0.]*100)
+    n4_errs = np.array([0.]*100)
     for i in range(100):
         e_a = np_hist_all[0][i]
         n_a = np_hist_n[0][i]
         divided_e[i] = n_a/e_a if e_a != 0 else 0
         divided_bins[i] = (np_hist_n[1][i]+np_hist_n[1][i+1])/2.0
         div_errs[i] = (np.sqrt(n_a)/n_a)*divided_e[i] if n_a != 0 else 0
+        n3_bins[i] = (np_hist_n3[1][i]+np_hist_n3[1][i+1])/2.0
+        n4_bins[i] = (np_hist_n4[1][i]+np_hist_n4[1][i+1])/2.0
 
         t_err = np_hist_t[0][i]
         t_errs[i] = (np.sqrt(t_err)/t_err)
@@ -882,6 +941,12 @@ def energy_study(datapath):
         o_err = np_hist_o[0][i]
         o_errs[i] = (np.sqrt(o_err)/o_err)
 
+        n3_err = np_hist_n3[0][i]
+        n3_errs[i] = (np.sqrt(n3_err)/n3_err)
+
+        n4_err = np_hist_n4[0][i]
+        n4_errs[i] = (np.sqrt(n4_err)/n4_err)
+
     #print(divided_e)
     #input('well?')
 
@@ -897,30 +962,44 @@ def energy_study(datapath):
     #print(np_hist)
     #print(divided_bins)
 
+    ### Begin plotting
+    if root_style == True :
+        color = 'black'
+        facecolor=None
+    elif root_style == False :
+        sns.set(color_codes=True)
+        color = None
+
+    color = 'black'
+    facecolor=None
     f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
-    ax1.hist(n_e, bins = 100)
+    ax1.hist(n_e, bins = 100, color=color, histtype='step')
     ax1.set_xlabel('Neutron Sum Q')
-    ax3.hist(all_e, bins = 100)
+    ax3.hist(all_e, bins = 100, color=color, histtype='step')
     ax3.set_xlabel('All Sum Q')
     #print(len(divided_e), len(np_hist_n[1]))
     #ax2.scatter(divided_bins, divided_e)
-    ax2.errorbar(divided_bins, divided_e, yerr=div_errs, fmt='o', capsize=0)
+    ax2.errorbar(divided_bins, divided_e, yerr=div_errs, fmt='o', capsize=0,
+            color=color)
     ax2.set_xlabel('Neutron Sum Q')
     ax2.set_ylabel('Efficiency')
 
     # "Dot" histogram of all PID
     ax4.errorbar(divided_bins, np_hist_t[0], yerr=t_errs, fmt='o', capsize=0,
-            color='orange')
+            color='orange', label='Top alphas')
     ax4.errorbar(divided_bins, np_hist_b[0], yerr=b_errs, fmt='o', capsize=0,
-            color='yellow')
-    ax4.errorbar(divided_bins, np_hist_n[0], yerr=n_errs, fmt='o', capsize=0)
+            color='yellow', label='Bottom alphas')
+    ax4.errorbar(divided_bins, np_hist_n[0], yerr=n_errs, fmt='o', capsize=0,
+            label='Neutrons')
 
     ax4.errorbar(divided_bins, np_hist_p[0], yerr=p_errs, fmt='o', capsize=0,
-            color='purple')
+            color='purple', label='Protons')
     ax4.errorbar(divided_bins, np_hist_x[0], yerr=x_errs, fmt='o', capsize=0,
-            color='black')
+            color='black', label='x rays')
     ax4.errorbar(divided_bins, np_hist_o[0], yerr=o_errs, fmt='o', capsize=0,
-            color='red')
+            color='red', label='Others')
+    ax4.set_xlabel('Sum Q')
+    ax4.legend(loc='upper right')
 
     # Bar histogram of all PID
     #ax4.hist(topa_e, bins = 100, color='orange')
@@ -929,6 +1008,19 @@ def energy_study(datapath):
     #ax4.hist(x_e, bins = 100, color='black')
     #ax4.hist(others_e, bins = 100, color='red')
     #ax4.hist(n_e, bins = 100)
+
+    # Neutron energy spectrum in each TPC
+    g, (bx1, bx2) = plt.subplots(1, 2, sharey=True)
+    bx1.errorbar(n3_bins, np_hist_n3[0], yerr=n3_errs, fmt='o', capsize=0,
+            color=color)
+    bx1.set_title('Sum Q for Neutron Candidates (TPC 3)')
+    bx1.set_xlabel('Sum Q')
+
+    bx2.errorbar(n4_bins, np_hist_n4[0], yerr=n4_errs, fmt='o', capsize=0,
+            color=color)
+    bx2.set_xlabel('Sum Q')
+    bx2.set_title('Sum Q for Neutron Candidates (TPC 4)')
+
     plt.show()
 
     #hist_n.Draw()
@@ -944,9 +1036,9 @@ def main():
     ### Use BEAST v2 data
     datapath = str(home) + '/BEAST/data/v2/'
 
-    rate_vs_beamsize(datapath)
+    #rate_vs_beamsize(datapath)
     neutron_study(datapath)
-    #energy_study(datapath)
+    energy_study(datapath)
     #energy_study('~/BEAST/data/TPC/tpc4_th50_data_cordir16_1464505200_skim.root')
 
 
