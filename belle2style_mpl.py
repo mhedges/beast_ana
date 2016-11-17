@@ -2,7 +2,15 @@
 
 
 """
-Belle2-like style for matplotlib
+Belle2-like style for matplotlib. Implement with:
+
+(example)
+import matplotlib.pyplot as plt
+import belle2style_mpl
+style = belle2style_mpl.b2_style_mpl()
+plt.style.use(style)
+
+Note that color of scatter plot points must be set *manually*!
 """
 __all__ = [
     'style_mpl',
@@ -14,6 +22,7 @@ def b2_style_mpl():
 
 
     STYLE['lines.linewidth'] = 1
+    STYLE['errorbar.capsize'] = 0.0
 
     # font
     STYLE['font.family'] = 'sans-serif'
@@ -34,6 +43,7 @@ def b2_style_mpl():
 
     # axes
     STYLE['axes.labelsize'] = 20
+    STYLE['axes.grid'] = False
     STYLE['xtick.labelsize'] = 19
     STYLE['xtick.major.size'] = 12
     STYLE['xtick.minor.visible'] = True

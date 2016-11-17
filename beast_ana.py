@@ -83,6 +83,8 @@ def rate_vs_beamsize(datapath):
     rate_errs = []
     rate3_errs = []
     rate4_errs = []
+    ts_3 = []
+    ts_4 = []
 
     for f in os.listdir(datapath):
         if f not in runs: continue
@@ -279,7 +281,7 @@ def rate_vs_beamsize(datapath):
     ax1 = f.add_subplot(111)
     chi2.draw(minu)
     ax1.errorbar(avg_beamsize, avg_rate, yerr=rate_errs, fmt='o', color=color)
-    ax1.set_xlabel('Beamsize ($\mu$$m$$^{-1}$)')
+    ax1.set_xlabel('Inverse Beamsize ($\mu$$m$$^{-1}$)')
     ax1.set_ylabel('Fast neutron rate (Hz)')
     ax1.set_xlim([0.0,0.030])
     ax1.set_ylim([0.0,0.2])
@@ -294,7 +296,7 @@ def rate_vs_beamsize(datapath):
     bx1 = g.add_subplot(111)
     chi23.draw(minu3)
     bx1.errorbar(avg_beamsize, rate_3, yerr=rate3_errs, fmt='o', color=color)
-    bx1.set_xlabel('Beamsize ($\mu$$m$$^{-1}$)')
+    bx1.set_xlabel('Inverse Beamsize ($\mu$$m$$^{-1}$)')
     bx1.set_ylabel('Fast neutron rate in TPC3 (Hz)')
     bx1.set_xlim([0.0,0.030])
     bx1.set_ylim([0.0,0.09])
@@ -308,7 +310,7 @@ def rate_vs_beamsize(datapath):
     bx2 = h.add_subplot(111)
     chi24.draw(minu4)
     bx2.errorbar(avg_beamsize, rate_4, yerr=rate4_errs, fmt='o', color=color)
-    bx2.set_xlabel('Beamsize ($\mu$$m$$^{-1}$)')
+    bx2.set_xlabel('Inverse Beamsize ($\mu$$m$$^{-1}$)')
     bx2.set_ylabel('Fast neutron rate in TPC4 (Hz)')
     bx2.set_xlim([0.0,0.030])
     bx2.set_ylim([0.0,0.09])
@@ -947,8 +949,15 @@ def energy_study(datapath):
         n4_err = np_hist_n4[0][i]
         n4_errs[i] = (np.sqrt(n4_err)/n4_err)
 
+    gain1 = 30.0
+    gain2 = 50.0
+    w = 35.075
+    divided_bins_kev = divided_bins/(gain1 * gain2)*w*1E-3
+    #print(divided_bins_kev)
     #print(divided_e)
     #input('well?')
+    n3_bins_kev = n3_bins/(gain1 * gain2)*w*1E-3
+    n4_bins_kev = n4_bins/(gain1 * gain2)*w*1E-3
 
     #hist_n.Divide(hist_all)
     np_hist = hist2array(hist_n)
@@ -1009,20 +1018,34 @@ def energy_study(datapath):
     #ax4.hist(others_e, bins = 100, color='red')
     #ax4.hist(n_e, bins = 100)
 
-    # Neutron energy spectrum in each TPC
+    # Neutron energy spectrum in each TPC using sumQ
     g, (bx1, bx2) = plt.subplots(1, 2, sharey=True)
     bx1.errorbar(n3_bins, np_hist_n3[0], yerr=n3_errs, fmt='o', capsize=0,
             color=color)
     bx1.set_title('Sum Q for Neutron Candidates (TPC 3)')
     bx1.set_xlabel('Sum Q')
+    bx1.set_yscale('log')
 
     bx2.errorbar(n4_bins, np_hist_n4[0], yerr=n4_errs, fmt='o', capsize=0,
             color=color)
     bx2.set_xlabel('Sum Q')
     bx2.set_title('Sum Q for Neutron Candidates (TPC 4)')
 
-    plt.show()
+    # Neutron energy spectrum in each TPC using sumQ
+    h, (cx1, cx2) = plt.subplots(1, 2, sharey=True)
+    cx1.errorbar(n3_bins_kev, np_hist_n3[0], yerr=n3_errs, fmt='o', capsize=0,
+           color=color)
+    cx1.set_title('Energy of Neutron Candidates (TPC 3)')
+    cx1.set_xlabel('Sum E (KeV)')
+    cx1.set_yscale('log')
 
+    cx2.errorbar(n4_bins_kev, np_hist_n4[0], yerr=n4_errs, fmt='o', capsize=0,
+           color=color)
+    cx2.set_xlabel('Sum E (KeV)')
+    cx2.set_title('Energy of Neutron Candidates (TPC 4)')
+    cx2.set_yscale('log')
+
+    plt.show()
     #hist_n.Draw()
     #input('well?')
 
@@ -1037,7 +1060,7 @@ def main():
     datapath = str(home) + '/BEAST/data/v2/'
 
     #rate_vs_beamsize(datapath)
-    neutron_study(datapath)
+    #neutron_study(datapath)
     energy_study(datapath)
     #energy_study('~/BEAST/data/TPC/tpc4_th50_data_cordir16_1464505200_skim.root')
 
