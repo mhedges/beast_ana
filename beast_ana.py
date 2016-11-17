@@ -128,12 +128,14 @@ def rate_vs_beamsize(datapath):
                         neutron_counter += 1
                         counter_3 += 1
                         timestamps.append(event.ts)
+                        ts_3.append(event.ts)
 
                 for k in range(len(tpc4_neutrons)):
                     if tpc4_neutrons[k] == 1 :
                         neutron_counter += 1
                         counter_4 += 1
                         timestamps.append(event.ts)
+                        ts_4.append(event.ts)
 
             elif event.subrun == 0 and subrun == True :
                 if neutron_counter == 0 : continue
@@ -246,6 +248,24 @@ def rate_vs_beamsize(datapath):
     rate3_errs = np.array(rate3_errs)
     rate4_errs = np.array(rate4_errs)
 
+    ### Get delta_t distribution for each TPC
+    ts_3 = np.array(ts_3)
+    ts_4 = np.array(ts_4)
+
+    delta_t3 = []
+    delta_t4 = []
+
+    for i in range(len(ts_3)):
+        if i == len(ts_3) - 1: continue
+        delt_t3 = ts_3[i+1]-ts_3[i]
+        delta_t3.append(delt_t3)
+    delta_t3 = np.array(delta_t3)
+
+    for i in range(len(ts_4)):
+        if i == len(ts_4) - 1: continue
+        delt_t4 = ts_4[i+1]-ts_4[i]
+        delta_t4.append(delt_t4)
+
     print('Inverse beam size values:\n',avg_beamsize)
     print('Inv_bs error values:\n', invbs_errs)
     print('Neutron rate values:\n', avg_rate)
@@ -315,8 +335,19 @@ def rate_vs_beamsize(datapath):
     bx2.set_xlim([0.0,0.030])
     bx2.set_ylim([0.0,0.09])
     
-    print(rate_3)
-    print(rate_4)
+    #print(rate_3)
+    #print(rate_4)
+
+    print(np.mean(delta_t3))
+    print(np.mean(delta_t4))
+    l, (cx1, cx2 ) = plt.subplots(1, 2)
+    bins = 100
+    cx1.hist(delta_t3, bins, histtype='step', color=color)
+    cx1.set_title('$\Delta$$t$ of Sequential Neutron Events in TPC 3')
+    cx1.set_xlabel('$\Delta$$t$ ($s$)')
+    cx2.hist(delta_t4, bins, histtype='step', color=color)
+    cx2.set_title('$\Delta$$t$ of Sequential Neutron Events in TPC 4')
+    cx2.set_xlabel('$\Delta$$t$ ($s$)')
     plt.show()
 
 
@@ -1059,7 +1090,7 @@ def main():
     ### Use BEAST v2 data
     datapath = str(home) + '/BEAST/data/v2/'
 
-    #rate_vs_beamsize(datapath)
+    rate_vs_beamsize(datapath)
     #neutron_study(datapath)
     energy_study(datapath)
     #energy_study('~/BEAST/data/TPC/tpc4_th50_data_cordir16_1464505200_skim.root')
