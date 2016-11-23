@@ -343,12 +343,14 @@ def rate_vs_beamsize(datapath):
     print(np.mean(delta_t4))
     l, (cx1, cx2 ) = plt.subplots(1, 2)
     bins = 100
-    cx1.hist(delta_t3, bins=len(delta_t3), histtype='step', color=color)
+    cx1.hist(delta_t3, bins=max(delta_t3), histtype='step', color=color)
     cx1.set_title('$\Delta$$t$ of Sequential Neutron Events in Ch. 3')
     cx1.set_xlabel('$\Delta$$t$ ($s$)')
-    cx2.hist(delta_t4, bins=len(delta_t4), histtype='step', color=color)
+    cx1.set_yscale('log')
+    cx2.hist(delta_t4, bins=max(delta_t4), histtype='step', color=color)
     cx2.set_title('$\Delta$$t$ of Sequential Neutron Events in Ch. 4')
     cx2.set_xlabel('$\Delta$$t$ ($s$)')
+    cx2.set_yscale('log')
     plt.show()
 
 
@@ -1277,11 +1279,15 @@ def gain_study():
             t3b_ts.append(ts)
 
     for event in data_4:
-        if event.top_alpha == 1 and event.theta > 85.0 and event.theta < 95.0 :
+        #if event.top_alpha == 1 and event.theta > 85.0 and event.theta < 95.0 :
+        if (event.top_alpha == 1 and event.theta > 85.0 and event.theta < 95.0
+                and event.phi > -5.0 and event.phi < 5.0 ):
             t4_etop.append(event.e_sum)
             ts = event.tstamp-t4_start
             t4t_ts.append(ts)
-        if event.bottom_alpha == 1 and event.theta > 85.0 and event.theta < 95.0 :
+        #if event.bottom_alpha == 1 and event.theta > 85.0 and event.theta < 95.0 :
+        if (event.bottom_alpha == 1 and event.theta > 85.0 and event.theta < 95.0
+                and event.phi > -5.0 and event.phi < 5.0 ):
             t4_ebottom.append(event.e_sum)
             ts = event.tstamp-t4_start
             t4b_ts.append(ts)
@@ -1311,18 +1317,6 @@ def gain_study():
 
     ### Use pandas dataframe to make "profile" histogram
     #pd.set_option('display.max_rows', 1000)
-    df3t = pd.DataFrame({'t3t_ts': t3t_ts, 't3_etop': t3_etop})
-    df3b = pd.DataFrame({'t3b_ts': t3b_ts, 't3_ebottom': t3_ebottom})
-
-    df4t = pd.DataFrame({'t4t_ts': t4t_ts, 't4_etop': t4_etop})
-    df4b = pd.DataFrame({'t4b_ts': t4b_ts, 't4_ebottom': t4_ebottom})
-    
-    ### Try using np.histogram instead of np.digitize
-    hist_t3t_ts = np.histogram(t3t_ts, bins=100, range=[0,max(t3t_ts)])
-    hist_t3b_ts = np.histogram(t3b_ts, bins=100, range=[0,max(t3b_ts)])
-    hist_t4t_ts = np.histogram(t4t_ts, bins=100, range=[0,max(t4t_ts)])
-    hist_t4b_ts = np.histogram(t4b_ts, bins=100, range=[0,max(t4t_ts)])
-    #print(hist_t3t_ts)
 
     ### Using np.digitize
     bins_t3t = np.linspace(0, max(t3t_ts), 101)
@@ -1333,19 +1327,45 @@ def gain_study():
     bin_centers_t3b = 0.5 * (bins_t3b[:-1] + bins_t3b[1:])
     bin_width_t3b = bins_t3b[1] - bins_t3b[0]
 
-    bins_t4t = np.linspace(0, max(t4b_ts), 101)
+    bins_t4t = np.linspace(0, max(t4t_ts), 101)
     bin_centers_t4t = 0.5 * (bins_t4t[:-1] + bins_t4t[1:])
+    #print(bins_t4t)
+    #print(len(bins_t4t))
+    #print(bin_centers_t4t)
+    #print(len(bin_centers_t4t))
+    #input('well?')
     bin_width_t4t = bins_t4t[1] - bins_t4t[0]
 
     bins_t4b = np.linspace(0, max(t4b_ts), 101)
     bin_centers_t4b = 0.5 * (bins_t4b[:-1] + bins_t4b[1:])
     bin_width_t4b = bins_t4b[1] - bins_t4b[0]
-    
-    
-    df3t['bin'] = np.digitize(t3t_ts, bins=bins_t3t)
+
+    #df3t = pd.DataFrame({'bins': bins_t3t})
+    #df3b = pd.DataFrame({'bins': bins_t3b})
+    #df4t = pd.DataFrame({'bins': bins_t4t})
+    #df4b = pd.DataFrame({'bins': bins_t4b})
+
     #print(df3t)
+    #input('well?')
+
+    df3t = pd.DataFrame({'t3t_ts': t3t_ts, 't3_etop': t3_etop})
+    df3b = pd.DataFrame({'t3b_ts': t3b_ts, 't3_ebottom': t3_ebottom})
+    df4t = pd.DataFrame({'t4t_ts': t4t_ts, 't4_etop': t4_etop})
+    df4b = pd.DataFrame({'t4b_ts': t4b_ts, 't4_ebottom': t4_ebottom})
+
+    ### Try using np.histogram instead of np.digitize
+    #hist_t3t_ts = np.histogram(t3t_ts, bins=100, range=[0,max(t3t_ts)])
+    #hist_t3b_ts = np.histogram(t3b_ts, bins=100, range=[0,max(t3b_ts)])
+    #hist_t4t_ts = np.histogram(t4t_ts, bins=100, range=[0,max(t4t_ts)])
+    #hist_t4b_ts = np.histogram(t4b_ts, bins=100, range=[0,max(t4t_ts)])
+    #print(hist_t3t_ts)
+
+
+    df3t['bin'] = np.digitize(t3t_ts, bins=bins_t3t)
     df3b['bin'] = np.digitize(t3b_ts, bins=bins_t3b)
     df4t['bin'] = np.digitize(t4t_ts, bins=bins_t4t)
+    #print(df4t['bin'].values)
+    #input('well?')
     df4b['bin'] = np.digitize(t4b_ts, bins=bins_t4b)
 
     #print(len(df3t), len(df3b), len(df4t), len(df4b))
@@ -1358,7 +1378,9 @@ def gain_study():
     #print(result_t3)
     #print(len(bin_centers_t3t))
     #print(len(result_t3))
+    #print(result_t3)
     result_t3['x'] = bin_centers_t3t
+    #input('well?')
     #result_t3['xerr'] = bin_width_t3t / 2.0
     #result_t3['x'] = hist_t3t_ts[1]
     #result_t3['xerr'] = hist_t3t_ts[1] / 2.0
@@ -1375,33 +1397,77 @@ def gain_study():
     #result_b3['x'] = hist_t3b_ts[1]
     #result_b3['xerr'] = hist_t3b_ts[1] / 2.0
 
+    #binned_t4 = df4t.groupby('bin')
+    #binned_t4.set_index('bin')
+    #new_index = Index(arange(0, max(bins_t4t), max(bins_t4t)/100.))
+    #binned_t4.set_index('bin').reindex(new_index)
+
+
+
+    bins = np.array(df4t['bin'].values)
+    #print(bins)
+    #input('well?')
+    #print(max(bins), len(bin_centers_t4t))
+    #for i in bins :
+    #    print(i, bin_centers_t4t[i-1])
+    #print(bin_centers_t4t[0])
+    #x_binned = bin_centers_t4t[bins-2] 
+    #print(x_binned, len(x_binned), len(bins))
+    #input('well?')
+    #x_binned = np.array([0.]*len(bins))
+    #for i in range(len(bins)):
+    #    if bins[i] < 3 : 
+    #        #print(i, bins[i], bin_centers_t4t[0])
+    #        x_binned[i] = bin_centers_t4t[0]
+    #    else : x_binned[i] = bin_centers_t4t[bins[i]-2]
+    #print(x_binned)
+    #input('well?')
+    #df4t['x'] = x_binned
+    #print(df4t)
+    #input('well?')
+
+    #df4t['binned_x'] = bin_centers_t4t[df4t['bin'].values]
     binned_t4 = df4t.groupby('bin')
+    #binned_t4 = df4t.groupby('x')
     result_t4 = binned_t4['t4_etop'].agg(['mean', 'sem'])
     result_t4.fillna(0)
-    #print(result_t4)
+    #result_t4['test'] = result_t4.index.values
+
+    bins = np.array(result_t4.index.values)
+    x_binned = np.array([0.]*len(bins))
+    for i in range(len(bins)):
+        if bins[i] < 3 : 
+            #print(i, bins[i], bin_centers_t4t[0])
+            x_binned[i] = bin_centers_t4t[0]
+        else : x_binned[i] = bin_centers_t4t[bins[i]-2]
+
+    #print(bins, '\n', x_binned, '\n', len(bins), len(x_binned))
+    #input('well?')
+    print(binned_t4)
+    result_t4['x'] = x_binned
+    print(result_t4)
+    input('well?')
     #print(len(bin_centers_t4t))
     #print(len(result_t4))
-    #result_t4['x'] = bin_centers_t4t
+    #print(df4t)
+    #print(bin_centers_t4t)
+    #print(df4t['bin'].values)
+    #result_t4['x'] = x_binned
+    #result_t4['x'] = result_t4['bin']
     #result_t4['xerr'] = bin_width_t4t / 2.0
-    result_t4['x'] = hist_t4t_ts[1]
-    #result_t4['xerr'] = hist_t4t_ts[1] / 2.0
 
-    binned_b4 = df4b.groupby('bin')
-    result_b4 = binned_b4['t4_ebottom'].agg(['mean', 'sem'])
-    result_b4.fillna(0)
+    #binned_b4 = df4b.groupby('bin')
+    #result_b4 = binned_b4['t4_ebottom'].agg(['mean', 'sem'])
+    #result_b4.fillna(0)
     #print(result_b4)
     #result_b4['x'] = bin_centers_t4b
     #result_b4['xerr'] = bin_width_t4b/ 2.0
-    result_b4['x'] = hist_t4b_ts[1]
+    #result_b4['x'] = hist_t4b_ts[1]
     #result_b4['xerr'] = hist_t4b_ts[1] / 2.0
 
     g, (bx1, bx2) = plt.subplots(1, 2)
-    #result_t3.plot(x='x', y='mean', xerr='xerr', yerr='sem', ax=bx1,
-    #    label='Top', color='black')
     result_t3.plot(x='x', y='mean', yerr='sem', ax=bx1,
         label='Top', color='black')
-    #result_b3.plot(x='x', y='mean', xerr='xerr', yerr='sem', ax=bx1,
-    #    label='Bottom')
     result_b3.plot(x='x', y='mean', yerr='sem', ax=bx1,
         label='Bottom')
     bx1.set_title('Alpha Sum Q vs Time in Ch. 3 (profile)')
@@ -1410,13 +1476,9 @@ def gain_study():
     bx1.set_xlabel('Time (s)')
     bx1.set_ylabel('Sum Q')
     result_t4.plot(x='x', y='mean', yerr='sem', ax=bx2,
-    #   label='Top', color='black')
-    #result_t4.plot(x='x', y='mean', xerr='xerr', yerr='sem', ax=bx2,
        label='Top', color='black')
-    #result_b4.plot(x='x', y='mean', xerr='xerr', yerr='sem', ax=bx2,
+    #result_b4.plot(x='x', y='mean', yerr='sem', ax=bx2,
     #    label='Bottom')
-    result_b4.plot(x='x', y='mean', yerr='sem', ax=bx2,
-        label='Bottom')
     bx2.set_title('Alpha Sum Q vs Time in TPC4 (profile)')
     bx2.legend(loc='lower left')
     bx2.set_ylim(0,5E7)
@@ -1435,10 +1497,10 @@ def main():
     datapath = str(home) + '/BEAST/data/v2/'
 
     #rate_vs_beamsize(datapath)
-    neutron_study(datapath)
+    #neutron_study(datapath)
     #energy_study(datapath)
     #energy_study('~/BEAST/data/TPC/tpc4_th50_data_cordir16_1464505200_skim.root')
-    #gain_study()
+    gain_study()
 
 
 if __name__ == "__main__":
