@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -67,7 +68,11 @@ def run_names(run_name):
     LER_ToushekTPC =(
             ['BEAST_run10000.root','BEAST_run10001.root','BEAST_run10002.root','BEAST_run10003.root','BEAST_run10004.root'])
 
+    sim_LER_ToushekTPC =(
+            ['mc_beast_run_10002.root','mc_beast_run_10003.root','mc_beast_run_10004.root'])
+
     if run_name == 'LER_ToushekTPC': return LER_ToushekTPC
+    if run_name == 'sim_LER_ToushekTPC': return sim_LER_ToushekTPC
     elif run_name == 'HER_ToushekTPC': return HER_ToushekTPC
 
 
@@ -86,6 +91,8 @@ def rate_vs_beamsize(datapath):
     ts_3 = []
     ts_4 = []
     
+    tot_counter = 0
+
     for f in os.listdir(datapath):
         if f not in runs: continue
         ifile = datapath
@@ -123,20 +130,25 @@ def rate_vs_beamsize(datapath):
                 tpc3_neutrons = event.TPC3_PID_neutrons
                 tpc4_neutrons = event.TPC4_PID_neutrons
                 dedx_3 = event.TPC3_dEdx
+                dedx_4 = event.TPC4_dEdx
 
 
                 for i in range(len(tpc3_neutrons)):
-                    if tpc3_neutrons[i] == 1 :
+                    #if tpc3_neutrons[i] == 1 :
+                    if tpc3_neutrons[i] == 1 and dedx_3[i] > 0.35 :
                     #if tpc3_neutrons[i] == 1 and event.TPC3_dEdx[i] > 0.15 :
                         neutron_counter += 1
+                        tot_counter += 1
                         counter_3 += 1
                         timestamps.append(event.ts)
                         ts_3.append(event.ts)
 
                 for k in range(len(tpc4_neutrons)):
-                    if tpc4_neutrons[k] == 1 :
+                    #if tpc4_neutrons[k] == 1 :
+                    if tpc4_neutrons[k] == 1 and dedx_4[k] > 0.35 :
                     #if tpc4_neutrons[k] == 1 and event.TPC4_dEdx[k] > 0.15 :
                         neutron_counter += 1
+                        tot_counter += 1
                         counter_4 += 1
                         timestamps.append(event.ts)
                         ts_4.append(event.ts)
@@ -237,6 +249,7 @@ def rate_vs_beamsize(datapath):
         run_avg_rate = []
         run_avg_beamsize = []
         timestamps = []
+        tot_counter += counter_3
         neutron_counter = 0
         counter_3 = 0
         counter_4 = 0
@@ -252,6 +265,7 @@ def rate_vs_beamsize(datapath):
     rate3_errs = np.array(rate3_errs)
     rate4_errs = np.array(rate4_errs)
 
+    print('\nTotal # of neutrons =', tot_counter, '\n')
     ### Get delta_t distribution for each TPC
     ts_3 = np.array(ts_3)
     ts_4 = np.array(ts_4)
@@ -309,7 +323,8 @@ def rate_vs_beamsize(datapath):
     ax1.set_ylabel('Fast neutron rate (Hz)')
     ax1.set_xlim([0.0,0.030])
     ax1.set_ylim([0.0,0.2])
-    f.savefig('TPC_toushek_measurement.eps')
+    #f.savefig('TPC_toushek_measurement.eps')
+    f.savefig('TPC_toushek_measurement_sim_cuts.eps')
     plt.show()
 
     chi23 = probfit.Chi2Regression(probfit.linear, avg_beamsize, rate_3,
@@ -331,7 +346,8 @@ def rate_vs_beamsize(datapath):
             rate4_errs)
     minu4 = iminuit.Minuit(chi24)
     minu4.migrad()
-    g.savefig('TPC3_toushek_measurement.eps')
+    #g.savefig('TPC3_toushek_measurement.eps')
+    g.savefig('TPC3_toushek_measurement_sim_cuts.eps')
     plt.show()
 
     h = plt.figure()
@@ -342,7 +358,8 @@ def rate_vs_beamsize(datapath):
     bx2.set_ylabel('Fast neutron rate in Ch. 4 (Hz)')
     bx2.set_xlim([0.0,0.030])
     bx2.set_ylim([0.0,0.09])
-    h.savefig('TPC4_toushek_measurement.eps')
+    #h.savefig('TPC4_toushek_measurement.eps')
+    h.savefig('TPC4_toushek_measurement_sim_cuts.eps')
     plt.show()
     
     #l = plt.figure()
@@ -384,6 +401,340 @@ def rate_vs_beamsize(datapath):
     plt.ylabel('Events per bin')
     plt.yscale('log')
     plt.savefig('tpc4_deltat.eps')
+    plt.show()
+
+def sim_rate_vs_beamsize(datapath):
+    runs = run_names('sim_LER_ToushekTPC')
+
+    avg_rates = []
+    rates_3 = []
+    rates_4 = []
+    avg_inv_beamsizes = []
+    invbs_errs = []
+    rate_errs = []
+    rate3_errs = []
+    rate4_errs = []
+    ts_3 = []
+    ts_4 = []
+    
+    tot_counter = 0
+
+
+    for f in os.listdir(datapath):
+        if f not in runs: continue
+        ifile = datapath
+        ifile += f
+
+        rfile = TFile(ifile)
+        tree = rfile.Get('tout')
+        test = str(tree)
+        if (test == '<ROOT.TObject object at 0x(nil)>' or tree.GetEntries() == 
+                0): continue
+
+        print(ifile)
+
+        data = root2rec(ifile, 'tout')
+
+        #print(set(data.subrun))
+        #input('well?')
+
+        run_avg_rate = []
+        run_avg_beamsize = []
+
+        counter_3 = 0
+        counter_4 = 0
+
+        neutron_counter = 0
+        #sizes = []
+        timestamps = []
+
+        for event in data:
+            if event.subrun != 0 :
+                if event.SKB_LER_beamSize_xray_Y[0] > 0. :
+                    run_avg_beamsize.append(1./event.SKB_LER_correctedBeamSize_xray_Y[0])
+                subrun = True
+
+                tpc3_neutrons = event.TPC_rate_av[0][0]
+                tpc4_neutrons = event.TPC_rate_av[1][0]
+                #dedx_3 = event.TPC3_dEdx
+                #dedx_4 = event.TPC4_dEdx
+                neutron_counter += tpc3_neutrons
+                neutron_counter += tpc4_neutrons
+                tot_counter += tpc3_neutrons
+                tot_counter += tpc4_neutrons
+
+                counter_3 += tpc3_neutrons
+                counter_4 += tpc4_neutrons
+
+
+                #for i in range(len(tpc3_neutrons)):
+                #    #if tpc3_neutrons[i] == 1 :
+                #    #if tpc3_neutrons[i] == 1 and dedx_3[i] > 0.35 :
+                #    #if tpc3_neutrons[i] == 1 and event.TPC3_dEdx[i] > 0.15 :
+                #        neutron_counter += 1
+                #        tot_counter += 1
+                #        counter_3 += 1
+                #        timestamps.append(event.ts)
+                #        ts_3.append(event.ts)
+
+                #for k in range(len(tpc4_neutrons)):
+                #    #if tpc4_neutrons[k] == 1 :
+                #    #if tpc4_neutrons[k] == 1 and dedx_4[k] > 0.35 :
+                #    #if tpc4_neutrons[k] == 1 and event.TPC4_dEdx[k] > 0.15 :
+                #        neutron_counter += 1
+                #        tot_counter += 1
+                #        counter_4 += 1
+                #        timestamps.append(event.ts)
+                #        ts_4.append(event.ts)
+
+            elif event.subrun == 0 and subrun == True :
+                if neutron_counter == 0 : continue
+
+                if len(timestamps) > 1 :
+                    t_range = max(timestamps) - min(timestamps)
+                else : t_range = 1
+
+                rate = float(neutron_counter)/float(t_range)
+                rate_3 = float(counter_3)/float(t_range)
+                rate_4 = float(counter_4)/float(t_range)
+                #run_avg_rate.append(rate)
+
+                if rate == 1 or rate == 0 :
+                    subrun = False
+                    timestamps = []
+                    neutron_counter = 0
+                    counter_3 = 0
+                    counter_4 = 0
+                    run_avg_rate = []
+                    run_avg_beamsize = []
+                    continue
+
+                avg_rates.append(rate)
+                rates_3.append(rate_3)
+                rates_4.append(rate_4)
+                rate_errs.append(sqrt(rate*t_range)/t_range)
+                rate3_errs.append(sqrt(rate_3*t_range)/t_range)
+                rate4_errs.append(sqrt(rate_4*t_range)/t_range)
+                print('Rate and err:', rate, sqrt(rate*t_range)/t_range)
+
+                run_avg_beamsize = np.array(run_avg_beamsize)
+                avg_inv_beamsizes.append(np.mean(run_avg_beamsize))
+                invbs_errs.append(np.std(run_avg_beamsize)/np.sqrt(len(run_avg_beamsize)))
+                print('Inv_bs and err:', np.mean(run_avg_beamsize), 
+                        np.std(run_avg_beamsize))
+
+                print('Number of neutrons in subrun = %i' % neutron_counter)
+                print('Time range:', t_range)
+                #print(max(timestamps), min(timestamps))
+                print('Ending at event number', event.event)
+                subrun = False
+                timestamps = []
+                neutron_counter = 0
+                counter_3 = 0
+                counter_4 = 0
+                run_avg_rate = []
+                run_avg_beamsize = []
+                
+            else : continue
+
+        if neutron_counter == 0 : continue
+
+        if len(timestamps) > 1 :
+            t_range = max(timestamps) - min(timestamps)
+        else : t_range = 1
+
+        rate = float(neutron_counter)/float(t_range)
+        rate_3 = float(counter_3)/float(t_range)
+        rate_4 = float(counter_4)/float(t_range)
+
+        if rate == 1 or rate == 0 :
+            timestamps = []
+            neutron_counter = 0
+            counter_3 = 0
+            counter_4 = 0
+            run_avg_rate = []
+            run_avg_beamsize = []
+            continue
+
+        #run_avg_rate.append(rate)
+        avg_rates.append(rate)
+        rates_3.append(rate_3)
+        rates_4.append(rate_4)
+
+        print('Number of neutrons in subrun = %i' % neutron_counter)
+        print('Time range:', t_range)
+        #print(max(timestamps), min(timestamps))
+        print('Ending at event number', event.event)
+
+        #print('Avg rates:\n', run_avg_rate)
+        run_avg_beamsize = np.array(run_avg_beamsize)
+        avg_inv_beamsizes.append(np.mean(run_avg_beamsize))
+        invbs_errs.append(np.std(run_avg_beamsize)/np.sqrt(len(run_avg_beamsize)))
+
+        rate_errs.append(sqrt(rate*t_range)/t_range)
+        rate3_errs.append(sqrt(rate_3*t_range)/t_range)
+        rate4_errs.append(sqrt(rate_4*t_range)/t_range)
+        print('Rate and err:', rate, sqrt(rate*t_range)/t_range)
+        print('Inv_bs and err:', np.mean(run_avg_beamsize), 
+                np.std(run_avg_beamsize))
+
+        #input('well?')
+
+        run_avg_rate = []
+        run_avg_beamsize = []
+        timestamps = []
+        tot_counter += counter_3
+        neutron_counter = 0
+        counter_3 = 0
+        counter_4 = 0
+
+
+    avg_beamsize = np.array(avg_inv_beamsizes)
+    avg_rate = np.array(avg_rates)
+    rate_3 = np.array(rates_3)
+    rate_4 = np.array(rates_4)
+    invbs_errs = np.array(invbs_errs)
+
+    rate_errs = np.array(rate_errs)
+    rate3_errs = np.array(rate3_errs)
+    rate4_errs = np.array(rate4_errs)
+
+    print('\nTotal # of neutrons =', tot_counter, '\n')
+    ### Get delta_t distribution for each TPC
+    ts_3 = np.array(ts_3)
+    ts_4 = np.array(ts_4)
+
+    delta_t3 = []
+    delta_t4 = []
+
+    for i in range(len(ts_3)):
+        if i == len(ts_3) - 1: continue
+        delt_t3 = ts_3[i+1]-ts_3[i]
+        delta_t3.append(delt_t3)
+    delta_t3 = np.array(delta_t3)
+
+    for i in range(len(ts_4)):
+        if i == len(ts_4) - 1: continue
+        delt_t4 = ts_4[i+1]-ts_4[i]
+        delta_t4.append(delt_t4)
+
+    print('Inverse beam size values:\n',avg_beamsize)
+    print('Inv_bs error values:\n', invbs_errs)
+    print('Neutron rate values:\n', avg_rate)
+    print('Rate error values:\n', rate_errs)
+    bs_errbars = np.array([0.])
+
+    ### Convert beamsize and rate arrays into pandas dataframe for fun
+    #arr = np.array([[0.0,0.0]]*len(avg_beamsize))
+    #df = pd.DataFrame({'Average Beamsize': avg_beamsize,
+    #                   'Average Rate'    : avg_rate, })
+
+    ### Try Seaborn regplot()
+    #sns.regplot(x='Average Beamsize', y='Average Rate', data=df, ci=99)
+    #input('well?')
+
+    ### Fit distribution to a line using probfit
+    fit_range = (0.01, 0.03)
+    chi2 = probfit.Chi2Regression(probfit.linear, avg_beamsize, avg_rate,
+            rate_errs)
+    minu = iminuit.Minuit(chi2)
+    minu.migrad()
+    pars = minu.values
+    p_errs = minu.errors
+    print(pars, p_errs)
+    #input('well?')
+
+
+    if root_style == True :
+        color = 'black'
+    elif root_style == False :
+        color = 'blue'
+    f = plt.figure()
+    ax1 = f.add_subplot(111)
+    chi2.draw(minu, print_par=False)
+    ax1.errorbar(avg_beamsize, avg_rate, yerr=rate_errs, fmt='o', color=color)
+    ax1.set_xlabel('Inverse Beamsize ($\mu$$m$$^{-1}$)')
+    ax1.set_ylabel('Fast neutron rate (Hz)')
+    #ax1.set_xlim([0.0,0.030])
+    #ax1.set_ylim([0.0,0.2])
+    #f.savefig('TPC_toushek_measurement.eps')
+    f.savefig('TPC_toushek_measurement_sim.eps')
+    plt.show()
+
+    chi23 = probfit.Chi2Regression(probfit.linear, avg_beamsize, rate_3,
+            rate3_errs)
+    minu3 = iminuit.Minuit(chi23)
+    minu3.migrad()
+
+    #g, (bx1, bx2 ) = plt.subplots(1, 2, sharex=True, sharey=True)
+    g = plt.figure()
+    bx1 = g.add_subplot(111)
+    chi23.draw(minu3, print_par=False)
+    bx1.errorbar(avg_beamsize, rate_3, yerr=rate3_errs, fmt='o', color=color)
+    bx1.set_xlabel('Inverse Beamsize ($\mu$$m$$^{-1}$)')
+    bx1.set_ylabel('Fast neutron rate in Ch. 3 (Hz)')
+    bx1.set_xlim([0.0,0.030])
+    bx1.set_ylim([0.0,0.09])
+
+    chi24 = probfit.Chi2Regression(probfit.linear, avg_beamsize, rate_4,
+            rate4_errs)
+    minu4 = iminuit.Minuit(chi24)
+    minu4.migrad()
+    #g.savefig('TPC3_toushek_measurement.eps')
+    g.savefig('TPC3_toushek_measurement_sim.eps')
+    plt.show()
+
+    h = plt.figure()
+    bx2 = h.add_subplot(111)
+    chi24.draw(minu4, print_par=False)
+    bx2.errorbar(avg_beamsize, rate_4, yerr=rate4_errs, fmt='o', color=color)
+    bx2.set_xlabel('Inverse Beamsize ($\mu$$m$$^{-1}$)')
+    bx2.set_ylabel('Fast neutron rate in Ch. 4 (Hz)')
+    bx2.set_xlim([0.0,0.030])
+    bx2.set_ylim([0.0,0.09])
+    #h.savefig('TPC4_toushek_measurement.eps')
+    h.savefig('TPC4_toushek_measurement_sim.eps')
+    plt.show()
+    
+    #l = plt.figure()
+    #cx1 = l.add_subplot(111)
+    #chi24.draw(minu4)
+    #cx1.errorbar(avg_beamsize, rate_4, yerr=rate4_errs, fmt='o', color=color)
+    #cx1.set_xlabel('Inverse Beamsize ($\mu$$m$$^{-1}$)')
+    #cx1.set_ylabel('Fast neutron rate in Ch. 4 (Hz)')
+    #cx1.set_xlim([0.0,0.030])
+    #cx1.set_ylim([0.0,0.09])
+    ##print(rate_3)
+    ##print(rate_4)
+
+    print(np.mean(delta_t3))
+    print(np.mean(delta_t4))
+    #l, (cx1, cx2 ) = plt.subplots(1, 2)
+    #bins = 100
+    #cx1.hist(delta_t3, bins=max(delta_t3), histtype='step', color=color)
+    #cx1.set_title('$\Delta$$t$ of Sequential Neutron Events in Ch. 3')
+    #cx1.set_xlabel('$\Delta$$t$ ($s$)')
+    #cx1.set_yscale('log')
+    #cx2.hist(delta_t4, bins=max(delta_t4), histtype='step', color=color)
+    #cx2.set_title('$\Delta$$t$ of Sequential Neutron Events in Ch. 4')
+    #cx2.set_xlabel('$\Delta$$t$ ($s$)')
+    #cx2.set_yscale('log')
+    #plt.show()
+
+    ### Plot figures individually
+    bins = 100
+    plt.hist(delta_t3, bins=max(delta_t3), histtype='step', color=color)
+    plt.xlabel('$\Delta$$t$ ($s$)')
+    plt.ylabel('Events per bin')
+    plt.yscale('log')
+    plt.savefig('tpc3_deltat_sim.eps')
+    plt.show()
+
+    plt.hist(delta_t4, bins=max(delta_t4), histtype='step', color=color)
+    plt.xlabel('$\Delta$$t$ ($s$)')
+    plt.ylabel('Events per bin')
+    plt.yscale('log')
+    plt.savefig('tpc4_deltat_sim.eps')
     plt.show()
 
 def peter_toushek(datapath):
@@ -1058,18 +1409,62 @@ def neutron_study(datapath):
     w = 35.075
     tpc3_kev_array = tpc3_energies_array/(gain1 * gain2)*w*1E-3
     tpc4_kev_array = tpc4_energies_array/(gain1 * gain2)*w*1E-3
+    tpc3_kev_array_bp = tpc3_energies_array_bp/(gain1 * gain2)*w*1E-3
+    tpc3_kev_array_notbp = tpc3_energies_array_notbp/(gain1 * gain2)*w*1E-3
+    tpc4_kev_array_bp = tpc4_energies_array_bp/(gain1 * gain2)*w*1E-3
+    tpc4_kev_array_notbp = tpc4_energies_array_notbp/(gain1 * gain2)*w*1E-3
 
     plt.hist(tpc3_kev_array, bins=25, color=color, histtype='step')
     plt.xlabel('Detected Energy (keV)')
     plt.ylabel('Events per bin')
     plt.xlim(0, 1600)
+    plt.yscale('log')
+    plt.ylim(0,4E2)
     plt.savefig('tpc3_recoil_energies.eps')
+    plt.show()
+
+    plt.hist(tpc3_kev_array_bp, bins=25, color=color, histtype='step')
+    plt.xlabel('Detected Energy (keV)')
+    plt.ylabel('Events per bin')
+    plt.xlim(0, 1600)
+    plt.yscale('log')
+    plt.ylim(0,4E2)
+    plt.savefig('tpc3_recoil_energies_bp.eps')
+    plt.show()
+
+    plt.hist(tpc3_kev_array_notbp, bins=25, color=color, histtype='step')
+    plt.xlabel('Detected Energy (keV)')
+    plt.ylabel('Events per bin')
+    plt.xlim(0, 1600)
+    plt.yscale('log')
+    plt.ylim(0,4E2)
+    plt.savefig('tpc3_recoil_energies_notbp.eps')
+    plt.show()
+
+    plt.hist(tpc4_kev_array_bp, bins=25, color=color, histtype='step')
+    plt.xlabel('Detected Energy (keV)')
+    plt.ylabel('Events per bin')
+    plt.xlim(0, 1600)
+    plt.yscale('log')
+    plt.ylim(0,4E2)
+    plt.savefig('tpc4_recoil_energies_bp.eps')
+    plt.show()
+
+    plt.hist(tpc4_kev_array_notbp, bins=25, color=color, histtype='step')
+    plt.xlabel('Detected Energy (keV)')
+    plt.ylabel('Events per bin')
+    plt.xlim(0, 1600)
+    plt.yscale('log')
+    plt.ylim(0,4E2)
+    plt.savefig('tpc4_recoil_energies_notbp.eps')
     plt.show()
 
     plt.hist(tpc4_kev_array, bins=25, color=color, histtype='step')
     plt.xlabel('Detected Energy (keV)')
     plt.ylabel('Events per bin')
     plt.xlim(0, 1600)
+    plt.yscale('log')
+    plt.ylim(0,4E2)
     plt.savefig('tpc4_recoil_energies.eps')
     plt.show()
 
@@ -1505,6 +1900,35 @@ def energy_study(gain_path):
     n_3 = np.array(n_3)
     n_4 = np.array(n_4)
 
+    ### Bar histograms for TPC energies
+    #h, (cx1) = plt.subplots(1, 1)
+    #cx1.hist(n_e, bins = 100, color='black', histtype='step')
+    #    
+    #cx1.set_xlabel('Recoil Energy (KeV)')
+    #cx1.set_ylabel('Events per Bin')
+    #cx1.set_yscale('log')
+    #h.savefig('neutron_energies.eps') 
+    #plt.show()
+    
+    h, (cx1) = plt.subplots(1, 1)
+    cx1.hist(n_3, bins = 100, color='black', histtype='step')
+        
+    cx1.set_xlabel('Recoil Energy (KeV)')
+    cx1.set_ylabel('Events per Bin')
+    cx1.set_yscale('log')
+    h.savefig('tpc3_neutron_energies.eps') 
+    plt.show()
+
+    h, (cx1) = plt.subplots(1, 1)
+    cx1.hist(n_4, bins = 100, color='black', histtype='step')
+        
+    cx1.set_xlabel('Recoil Energy (KeV)')
+    cx1.set_ylabel('Events per Bin')
+    cx1.set_yscale('log')
+    h.savefig('tpc4_neutron_energies.eps') 
+    plt.show()
+
+    input('done plotting')
     max_e = np.max(all_e)
     hist_all = Hist(100, 0., max_e)
     hist_all.fill_array(all_e)
@@ -1853,12 +2277,16 @@ def gain_study(gain_path):
                     #print('Is it det3?', data.detnb[0])
                     #input('well?')
 
-                    if event.top_alpha == 1 and event.theta > 85.0 and event.theta < 95.0 :
+                    if (event.top_alpha == 1 and event.theta > 85.0 and 
+                            event.theta < 95.0 and event.phi > -5.0 and 
+                            event.phi < 5.0 ):
                         t3_etop.append(event.e_sum)
                         ts = event.tstamp-t3_start
                         t3t_ts.append(ts)
 
-                    if event.bottom_alpha == 1 and event.theta > 85.0 and event.theta < 95.0 :
+                    if (event.bottom_alpha == 1 and event.theta > 85.0 and
+                            event.theta < 95.0 and event.phi > -5.0 and 
+                            event.phi < 5.0 ):
                         t3_ebottom.append(event.e_sum)
                         ts = event.tstamp-t3_start
                         t3b_ts.append(ts)
@@ -2208,6 +2636,88 @@ def pid_study(datapath):
     plt.savefig('tpc4_dedx_cuts.eps')
     plt.show()
 
+def event_inspection(datapath):
+    good_files = [1464483600,
+            1464487200,
+            1464490800,
+            1464494400,
+            1464498000,
+            1464501600,
+            1464505200,
+            1464483600,
+            1464487200,
+            1464490800,
+            1464494400,
+            1464498000,
+            1464501600,
+            1464505200]
+
+    #rows = 45
+    #cols = 49
+    #fig, axs = plt.subplots(rows, cols)
+    #n_neutrons = 0
+
+    #counter = 0
+    x_bins = 80
+    y_bins = 336
+    for subdir, dirs, files in os.walk(datapath):
+        for f in files:
+            strs = f.split('_')
+            if int(strs[-2]) not in good_files : continue
+            r_file = str(subdir) + str('/') + str(f)
+            print(r_file)
+            data = root2rec(r_file)
+            n_neutrons = sum(data.neutron)
+            grid = int(np.sqrt(n_neutrons)) + 1
+            print(n_neutrons, grid)
+            fig, axs = plt.subplots(grid, grid)
+            counter = 0
+            for event in data:
+                if event.neutron == 1 :
+                    #plt.hist2d(event.col, event.row, 
+                    #plt.hist2d(event.col, event.row, bins = (
+                    #    range(0, x_bins, 1) , range(0, y_bins, 1) ), weights = event.tot + 1)
+                    axs.flat[counter].hist2d( event.col, event.row, bins = (
+                            range(0, x_bins, 1) , range(0, y_bins, 1) ),
+                            weights = event.tot, cmin = 0, cmax = 15)
+                    axs.flat[counter].set_frame_on(False)
+                    axs.flat[counter].get_yaxis().set_visible(False)
+                    axs.flat[counter].get_xaxis().set_visible(False)
+                    axs.flat[counter].set_xlim(0, x_bins)
+                    axs.flat[counter].set_ylim(0, y_bins)
+                    #axs.flat[counter].clim(0,15)
+                    cbar = mpl.colorbar.ColorbarBase(axs.flat[counter],
+                            norm=mpl.colors.Normalize(vmin=0, vmax = 15) )
+                    cbar.set_clim(0,15)
+                    counter += 1
+            #plt.set_frame_on(False)
+            #plt.get_yaxis().set_visible(False)
+            #plt.get_xaxis().set_visible(False)
+            #plt.set_xlim(0, x_bins)
+            #plt.set_ylim(0, y_bins)
+
+                    #print(event.event)
+                    #plt.xlim(0, x_bins)
+                    #plt.ylim(0, y_bins)
+                    #plt.colorbar()
+                    #plt.show()
+            #fig.colorbar(axs)
+            diff = grid**2 - n_neutrons
+            for i in range(1,diff+1):
+                axs.flat[-i].set_frame_on(False)
+                axs.flat[-i].get_yaxis().set_visible(False)
+                axs.flat[-i].get_xaxis().set_visible(False)
+                
+            #fig.colorbar(_, cax=axs)
+            
+            #plt.colorbar()
+            fname = f.split('.')[0]
+            pname = fname + str('.eps')
+            print(pname)
+            fig.savefig(pname, format='eps')
+    #print(n_neutrons)
+    #input('well?')
+
 def main():
 
     home = expanduser('~')
@@ -2217,9 +2727,11 @@ def main():
     
     ### Use BEAST v2 data
     datapath = str(home) + '/BEAST/data/v2/'
+    simpath = str(home) + '/BEAST/sim/'
 
-    #rate_vs_beamsize(datapath)
-    peter_toushek(datapath)
+    rate_vs_beamsize(datapath)
+    #sim_rate_vs_beamsize(simpath)
+    #peter_toushek(datapath)
     #neutron_study(datapath)
     #energy_study(datapath)
 
@@ -2227,6 +2739,7 @@ def main():
     #energy_study(inpath)
     #gain_study(inpath)
     #pid_study(inpath)
+    #event_inspection(inpath)
 
 
 if __name__ == "__main__":
