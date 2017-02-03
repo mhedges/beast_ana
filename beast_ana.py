@@ -454,8 +454,8 @@ def sim_rate_vs_beamsize(datapath):
                     run_avg_beamsize.append(1./event.SKB_LER_correctedBeamSize_xray_Y[0])
                 subrun = True
 
-                tpc3_neutrons = event.TPC_rate_av[0][0]
-                tpc4_neutrons = event.TPC_rate_av[1][0]
+                tpc3_neutrons = event.TPC_rate[0][0]
+                tpc4_neutrons = event.TPC_rate[1][0]
                 #dedx_3 = event.TPC3_dEdx
                 #dedx_4 = event.TPC4_dEdx
                 neutron_counter += tpc3_neutrons
@@ -2729,8 +2729,8 @@ def main():
     datapath = str(home) + '/BEAST/data/v2/'
     simpath = str(home) + '/BEAST/sim/'
 
-    rate_vs_beamsize(datapath)
-    #sim_rate_vs_beamsize(simpath)
+    #rate_vs_beamsize(datapath)
+    sim_rate_vs_beamsize(simpath)
     #peter_toushek(datapath)
     #neutron_study(datapath)
     #energy_study(datapath)
