@@ -454,8 +454,10 @@ def sim_rate_vs_beamsize(datapath):
                     run_avg_beamsize.append(1./event.SKB_LER_correctedBeamSize_xray_Y[0])
                 subrun = True
 
-                tpc3_neutrons = event.TPC_rate[0][0]
-                tpc4_neutrons = event.TPC_rate[1][0]
+                tpc3_neutrons = event.TPC_rate_av[0][0]
+                tpc4_neutrons = event.TPC_rate_av[1][0]
+                print(tpc3_neutrons, tpc4_neutrons)
+                #input('well?')
                 #dedx_3 = event.TPC3_dEdx
                 #dedx_4 = event.TPC4_dEdx
                 neutron_counter += tpc3_neutrons
@@ -655,8 +657,8 @@ def sim_rate_vs_beamsize(datapath):
     ax1.errorbar(avg_beamsize, avg_rate, yerr=rate_errs, fmt='o', color=color)
     ax1.set_xlabel('Inverse Beamsize ($\mu$$m$$^{-1}$)')
     ax1.set_ylabel('Fast neutron rate (Hz)')
-    #ax1.set_xlim([0.0,0.030])
-    #ax1.set_ylim([0.0,0.2])
+    #ax1.set_xlim([0.0,0.03])
+    #ax1.set_ylim([0.0,23.0])
     #f.savefig('TPC_toushek_measurement.eps')
     f.savefig('TPC_toushek_measurement_sim.eps')
     plt.show()
@@ -673,8 +675,8 @@ def sim_rate_vs_beamsize(datapath):
     bx1.errorbar(avg_beamsize, rate_3, yerr=rate3_errs, fmt='o', color=color)
     bx1.set_xlabel('Inverse Beamsize ($\mu$$m$$^{-1}$)')
     bx1.set_ylabel('Fast neutron rate in Ch. 3 (Hz)')
-    bx1.set_xlim([0.0,0.030])
-    bx1.set_ylim([0.0,0.09])
+    #bx1.set_xlim([0.0,0.03])
+    #bx1.set_ylim([0.0,23.0])
 
     chi24 = probfit.Chi2Regression(probfit.linear, avg_beamsize, rate_4,
             rate4_errs)
@@ -690,53 +692,12 @@ def sim_rate_vs_beamsize(datapath):
     bx2.errorbar(avg_beamsize, rate_4, yerr=rate4_errs, fmt='o', color=color)
     bx2.set_xlabel('Inverse Beamsize ($\mu$$m$$^{-1}$)')
     bx2.set_ylabel('Fast neutron rate in Ch. 4 (Hz)')
-    bx2.set_xlim([0.0,0.030])
-    bx2.set_ylim([0.0,0.09])
+    #bx2.set_xlim([0.0,0.03])
+    #bx2.set_ylim([0.0,23.0])
     #h.savefig('TPC4_toushek_measurement.eps')
     h.savefig('TPC4_toushek_measurement_sim.eps')
     plt.show()
     
-    #l = plt.figure()
-    #cx1 = l.add_subplot(111)
-    #chi24.draw(minu4)
-    #cx1.errorbar(avg_beamsize, rate_4, yerr=rate4_errs, fmt='o', color=color)
-    #cx1.set_xlabel('Inverse Beamsize ($\mu$$m$$^{-1}$)')
-    #cx1.set_ylabel('Fast neutron rate in Ch. 4 (Hz)')
-    #cx1.set_xlim([0.0,0.030])
-    #cx1.set_ylim([0.0,0.09])
-    ##print(rate_3)
-    ##print(rate_4)
-
-    print(np.mean(delta_t3))
-    print(np.mean(delta_t4))
-    #l, (cx1, cx2 ) = plt.subplots(1, 2)
-    #bins = 100
-    #cx1.hist(delta_t3, bins=max(delta_t3), histtype='step', color=color)
-    #cx1.set_title('$\Delta$$t$ of Sequential Neutron Events in Ch. 3')
-    #cx1.set_xlabel('$\Delta$$t$ ($s$)')
-    #cx1.set_yscale('log')
-    #cx2.hist(delta_t4, bins=max(delta_t4), histtype='step', color=color)
-    #cx2.set_title('$\Delta$$t$ of Sequential Neutron Events in Ch. 4')
-    #cx2.set_xlabel('$\Delta$$t$ ($s$)')
-    #cx2.set_yscale('log')
-    #plt.show()
-
-    ### Plot figures individually
-    bins = 100
-    plt.hist(delta_t3, bins=max(delta_t3), histtype='step', color=color)
-    plt.xlabel('$\Delta$$t$ ($s$)')
-    plt.ylabel('Events per bin')
-    plt.yscale('log')
-    plt.savefig('tpc3_deltat_sim.eps')
-    plt.show()
-
-    plt.hist(delta_t4, bins=max(delta_t4), histtype='step', color=color)
-    plt.xlabel('$\Delta$$t$ ($s$)')
-    plt.ylabel('Events per bin')
-    plt.yscale('log')
-    plt.savefig('tpc4_deltat_sim.eps')
-    plt.show()
-
 def peter_toushek(datapath):
 
     runs = run_names('LER_ToushekTPC')
@@ -758,18 +719,12 @@ def peter_toushek(datapath):
         ifile = datapath
         ifile += f
 
-        rfile = TFile(ifile)
-        tree = rfile.Get('tout')
-        test = str(tree)
-        if (test == '<ROOT.TObject object at 0x(nil)>' or tree.GetEntries() == 
-                0): continue
-
         print(ifile)
 
         neutrons = 0
         neutrons3 = 0
         neutrons4 = 0
-        data = root2rec(ifile)
+        data = root2rec(ifile,'tout')
 
         counter3 = 0
         counter4 = 0
@@ -780,6 +735,7 @@ def peter_toushek(datapath):
         x = 0
         n3 = 0
         n4 = 0
+        z_eff = 0
 
         for event in data:
             if (event.SKB_LER_injectionFlag_safe == 0 and
@@ -799,27 +755,33 @@ def peter_toushek(datapath):
                     n4 += event.TPC4_N_neutrons[0]
 
                 current = event.SKB_LER_current[0]
-                local_pressure = event.SKB_LER_pressures_local[0]
+                local_pressure = event.SKB_LER_pressures_local[7]
                 beam_size = event.SKB_LER_beamSize_xray_Y[0]
 
                 ip += local_pressure * current
                 ps += beam_size * local_pressure
                 x += current / (local_pressure * beam_size)
+                z_eff += event.SKB_LER_Zeff_D02[0]**2
 
 
-        neutrons3 = n3 / counter #* 1000.
-        neutrons4 = n4 / counter #* 1000.
-        neutrons = ((neutrons3 +  neutrons4) / counter)# * 1000.
+
+        #neutrons3 = n3 / counter #* 1000.
+        #neutrons4 = n4 / counter #* 1000.
+        #neutrons = ((neutrons3 +  neutrons4) / counter)# * 1000.
+        neutrons3 = n3 / len(data) #* 1000.
+        neutrons4 = n4 / len(data) #* 1000.
+        neutrons = (neutrons3 +  neutrons4)# * 1000.
+        z_effavg = z_eff / counter
 
         mean_ip = ip / counter
         ip_err = mean_ip / np.sqrt(counter)
-        mean_x = x / counter
+        mean_x = x / counter / z_effavg
         x_err = mean_x / np.sqrt(counter)
         #mean_ps = ps / len(data)
 
-        y = ((n3 + n4)/counter) / (ip/counter)
-        y3 = (n3/counter) / (ip/counter)
-        y4 = (n4/counter) / (ip/counter)
+        y = ((n3 + n4)/counter) / (ip/counter) / z_effavg
+        y3 = (n3/counter) / (ip/counter) / z_effavg
+        y4 = (n4/counter) / (ip/counter) / z_effavg
         #y = neutrons /  mean_ip
         #y3 = neutrons3 / mean_ip
         #y4 = neutrons4 / mean_ip
@@ -877,7 +839,7 @@ def peter_toushek(datapath):
     pars = minu.values
     p_errs = minu.errors
     print(pars, p_errs)
-    input('well?')
+    #input('well?')
 
     if root_style == True :
         color = 'black'
@@ -890,11 +852,185 @@ def peter_toushek(datapath):
     #chi2.draw(minu, print_par=False)
     ax1.errorbar(peter_x, peter_y, xerr=x_errs, yerr=y_errs, fmt='o', color=color)
     #ax1.scatter(peter_x, peter_y, color=color)
-    ax1.set_xlabel('current / (pressure * beamsize)')
-    ax1.set_ylabel('n_neutrons/(current * pressure)')
-    ax1.set_xlim([0.0,4.0E7])
-    ax1.set_ylim([0.0,1000])
-    #f.savefig('TPC_toushek_measurement.eps')
+    ax1.set_xlabel('current / (pressure * beamsize * Zeff^2)')
+    ax1.set_ylabel('n_neutrons/(current * pressure * Zeff^2)')
+    ax1.set_xlim([0.0,3.5E6])
+    ax1.set_ylim([0.0,120.0])
+    ax1.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    f.savefig('TPC_peter_toushek_measurement.eps')
+    plt.show()
+
+    #chi23 = probfit.Chi2Regression(probfit.linear, avg_beamsize, rate_3,
+    #        rate3_errs)
+    #minu3 = iminuit.Minuit(chi23)
+    #minu3.migrad()
+
+    ##g, (bx1, bx2 ) = plt.subplots(1, 2, sharex=True, sharey=True)
+    #g = plt.figure()
+    #bx1 = g.add_subplot(111)
+    #chi23.draw(minu3, print_par=False)
+    #bx1.errorbar(avg_beamsize, rate_3, yerr=rate3_errs, fmt='o', color=color)
+    #bx1.set_xlabel('Inverse Beamsize ($\mu$$m$$^{-1}$)')
+    #bx1.set_ylabel('Fast neutron rate in Ch. 3 (Hz)')
+    #bx1.set_xlim([0.0,0.030])
+    #bx1.set_ylim([0.0,0.09])
+
+    #chi24 = probfit.Chi2Regression(probfit.linear, avg_beamsize, rate_4,
+    #        rate4_errs)
+    #minu4 = iminuit.Minuit(chi24)
+    #minu4.migrad()
+    #g.savefig('TPC3_toushek_measurement.eps')
+    #plt.show()
+
+def sim_peter_toushek(datapath):
+
+    runs = run_names('sim_LER_ToushekTPC')
+
+    # Variables for Peter Toushek units
+    peter_y = [] # n_neutrons/(current * local pressure)
+    peter_y3 = [] # n_neutrons/(current * local pressure)
+    peter_y4 = []
+    peter_x = [] # current/(local pressure * beamsize)
+
+    y3_errs = []
+    y4_errs = []
+    y_errs = []
+
+    x_errs = []
+
+    for f in os.listdir(datapath):
+        if f not in runs: continue
+        ifile = datapath
+        ifile += f
+
+        print(ifile)
+
+        neutrons = 0
+        neutrons3 = 0
+        neutrons4 = 0
+        data = root2rec(ifile, 'tout')
+
+        counter3 = 0
+        counter4 = 0
+        counter = 0
+        ip = 0
+        bs = 0
+        ps = 0
+        x = 0
+        n3 = 0
+        n4 = 0
+
+        for event in data:
+            if (event.SKB_LER_injectionFlag_safe == 0 and
+                    event.SKB_LER_beamSize_xray_Y < 400 and
+                    event.SKB_LER_beamSize_xray_Y > 35 and
+                    event.SKB_LER_current > 10):
+                #n3 += (event.TPC3_N_neutrons[0] if
+                #        len(event.TPC3_N_neutrons) > 0 else 0)
+                counter += 1
+
+                n3 += event.TPC_rate_av[0][0]
+                n4 += event.TPC_rate_av[1][0]
+
+                current = event.SKB_LER_current[0]
+                local_pressure = event.SKB_LER_pressures_local[7]
+                beam_size = event.SKB_LER_beamSize_xray_Y[0]
+
+                ip += local_pressure * current
+                ps += beam_size * local_pressure
+                x += current / (local_pressure * beam_size)
+
+        neutrons3 = n3 / len(data) #* 1000.
+        neutrons4 = n4 / len(data) #* 1000.
+        neutrons = (neutrons3 +  neutrons4)# * 1000.
+        z_effavg = 7.0**2
+
+        mean_ip = ip / counter
+        ip_err = mean_ip / np.sqrt(counter)
+        mean_x = x / counter / z_effavg
+        x_err = mean_x / np.sqrt(counter)
+        #mean_ps = ps / len(data)
+
+
+        y = ((n3 + n4)/counter) / (ip/counter) / z_effavg
+        y3 = (n3/counter) / (ip/counter) / z_effavg
+        y4 = (n4/counter) / (ip/counter) / z_effavg
+        #y = neutrons /  mean_ip
+        #y3 = neutrons3 / mean_ip
+        #y4 = neutrons4 / mean_ip
+        #print('Neutrons:', neutrons3, neutrons4, neutrons)
+        print("y's:", y, y3, y4)
+
+        #y3_err = y3 * np.sqrt( ((neutrons3/np.sqrt(neutrons3)/neutrons3)**2 +
+        #    (ip_err/mean_ip)**2 ) )
+        #y3_errs.append(y3_err)
+        #y4_err = y4 * np.sqrt( ((neutrons4/np.sqrt(neutrons4)/neutrons4)**2 +
+        #    (ip_err/mean_ip)**2 ) )
+        #y4_errs.append(y4_err)
+        #y_err = y * np.sqrt( ((neutrons/np.sqrt(neutrons)/neutrons)**2 +
+        #    (ip_err/mean_ip)**2 ) )
+        #y_errs.append(y_err)
+
+        y3_err = y3 / np.sqrt(counter)
+        y3_errs.append(y3_err)
+        y4_err = y4 / np.sqrt(counter)
+        y4_errs.append(y4_err)
+        y_err = y / np.sqrt(counter)
+        y_errs.append(y_err)
+
+        x_errs.append(x_err)
+
+        #print(neutrons3, neutrons4, neutrons, mean_ip)
+
+
+        peter_y.append(y)
+        peter_y3.append(y3)
+        peter_y4.append(y4)
+        peter_x.append(mean_x)
+
+    peter_y = np.array(peter_y)
+    peter_y3 = np.array(peter_y3)
+    peter_y4 = np.array(peter_y4)
+    peter_x = np.array(peter_x)
+
+    y_errs = np.array(y_errs)
+    y3_errs = np.array(y3_errs)
+    y4_errs = np.array(y4_errs)
+
+    x_errs = np.array(x_errs)
+
+    #print(peter_y3, peter_y4, peter_y)
+    #print(y3_errs, y4_errs, y_errs)
+    #input('well?')
+
+    fit_range = (0.01, 0.03)
+    fit_range = (min(peter_x), max(peter_x))
+    chi2 = probfit.Chi2Regression(probfit.linear, peter_x, peter_y,
+            y_errs)
+    minu = iminuit.Minuit(chi2)
+    minu.migrad()
+    pars = minu.values
+    p_errs = minu.errors
+    print(pars, p_errs)
+    #input('well?')
+
+    if root_style == True :
+        color = 'black'
+    elif root_style == False :
+        color = 'blue'
+
+    f = plt.figure()
+    ax1 = f.add_subplot(111)
+    chi2.draw(minu)
+    #chi2.draw(minu, print_par=False)
+    ax1.errorbar(peter_x, peter_y, xerr=x_errs, yerr=y_errs, fmt='o', color=color)
+    #ax1.scatter(peter_x, peter_y, color=color)
+    ax1.set_xlabel('current / (pressure * beamsize * Zeff^2)')
+    ax1.set_ylabel('n_neutrons/(current * pressure * Zeff^2)')
+    ax1.set_xlim([0.0,5.0E5])
+    ax1.set_ylim([0.0,3.0])
+    ax1.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    f.savefig('TPC_peter_toushek_measurement_sim.eps')
     plt.show()
 
     #chi23 = probfit.Chi2Regression(probfit.linear, avg_beamsize, rate_3,
@@ -1753,6 +1889,798 @@ def neutron_study(datapath):
         #    print(len(event.TPC3_PID_neutrons), 'Event number', event.event)
         #if event.TPC3_N_neutrons[0] > 0:
 
+def neutron_study_raw(datapath):
+    tpc3_phis = []
+    tpc3_thetas = []
+    tpc3_energies = []
+    tpc3_energies_bp = []
+    tpc3_energies_notbp = []
+    tpc3_sumtot = []
+    tpc3_sumtot_bp = []
+    tpc3_sumtot_notbp = []
+    tpc3_tlengths = []
+    tpc3_tlengths_bp = []
+    tpc3_tlengths_notbp = []
+    tpc3_thetas_beampipe = []
+    tpc3_thetas_notbp = []
+
+    tpc4_phis = []
+    tpc4_thetas = []
+    tpc4_energies = []
+    tpc4_energies_bp = []
+    tpc4_energies_notbp = []
+    tpc4_sumtot_bp = []
+    tpc4_sumtot_notbp = []
+    tpc4_sumtot = []
+    tpc4_tlengths = []
+    tpc4_tlengths_bp = []
+    tpc4_tlengths_notbp = []
+    tpc4_thetas_beampipe = []
+    tpc4_thetas_notbp = []
+
+    beamsize = []
+
+    good_files = [1464483600,
+            1464487200,
+            1464490800,
+            1464494400,
+            1464498000,
+            1464501600,
+            1464505200,
+            1464483600,
+            1464487200,
+            1464490800,
+            1464494400,
+            1464498000,
+            1464501600,
+            1464505200]
+
+    neutrons = 0
+
+    ### Looping over many files
+    for subdir, dirs, files in os.walk(datapath):
+        for f in files :
+            r_file = str(subdir) + str('/') + str(f)
+
+            #if '.root' not in f: continue
+
+            print(r_file)
+
+            strs = f.split('_')
+
+            if int(strs[-2]) not in good_files : continue
+            branches = ['neutron', 'theta', 'phi', 'de_dx', 'e_sum', 'tot_sum',
+                    'detnb']
+
+            data = root2rec(r_file, branches=branches)
+
+            counter_3 = 0
+            counter_4 = 0
+
+            for event in data:
+                if event.neutron == 1 :
+                    phi = event.phi
+                    theta = event.theta
+
+                    ### Check if theta and phi values are absurdly wrong
+                    if abs(phi) > 720. or abs(theta) > 720. : continue
+
+                    #if event.dedx < 0.15 :
+                    #    continue
+
+                    neutrons += 1
+
+                    if phi < -360. : phi += 360.
+                    elif phi > 360. : phi -= 360.
+
+                    if theta < -360. : theta += 360.
+                    elif theta > 360. : theta -= 360.
+
+                    if phi < -90. :
+                        phi += 180.
+                        theta *= -1.
+                        theta += 180.
+
+                    if phi > 90.:
+                        phi -= 180.
+                        theta *= -1.
+                        theta += 180.
+                        
+                    if theta < 0. : theta += 180.
+                    if theta > 180. : theta -= 180.
+
+                    if data.detnb[0] == 3 :
+                        tpc3_thetas.append(theta)
+                        tpc3_phis.append(phi)
+
+                        tpc3_energies.append(event.e_sum)
+                        tpc3_sumtot.append(event.tot_sum)
+                        tpc3_tlengths.append(event.tot_sum/event.de_dx)
+
+                    ### Select beampipe (+- 20 degrees)
+                        if abs(phi) < 20.:
+                            tpc3_thetas_beampipe.append(theta)
+                            tpc3_energies_bp.append(event.e_sum)
+                            tpc3_sumtot_bp.append(event.tot_sum)
+                            tpc3_tlengths_bp.append(event.tot_sum/event.de_dx)
+                        elif abs(phi) > 40.:
+                            tpc3_thetas_notbp.append(theta)
+                            tpc3_energies_notbp.append(event.e_sum)
+                            tpc3_sumtot_notbp.append(event.tot_sum)
+                            tpc3_tlengths_notbp.append(event.tot_sum/event.de_dx)
+
+
+                    elif data.detnb[0] == 4 :
+                        tpc4_phis.append(phi)
+                        tpc4_thetas.append(theta)
+
+                        tpc4_energies.append(event.e_sum)
+                        tpc4_sumtot.append(event.tot_sum)
+                        tpc4_tlengths.append(event.tot_sum/event.de_dx)
+
+                        #if 80. < theta and theta < 100 : print(theta)
+                        ### Select beampipe (+- 20 degrees)
+                        if abs(phi) < 20.:
+                            tpc4_thetas_beampipe.append(theta)
+                            tpc4_energies_bp.append(event.e_sum)
+                            tpc4_sumtot_bp.append(event.tot_sum)
+                            tpc4_tlengths_bp.append(event.tot_sum/event.de_dx)
+                        elif abs(phi) > 40.:
+                            tpc4_thetas_notbp.append(theta)
+                            tpc4_energies_notbp.append(event.e_sum)
+                            tpc4_sumtot_notbp.append(event.tot_sum)
+                            tpc4_tlengths_notbp.append(event.tot_sum/event.de_dx)
+
+    tpc3phi_array = np.array(tpc3_phis)
+    tpc3theta_array = np.array(tpc3_thetas)
+    tpc3_sumtot_array = np.array(tpc3_sumtot)
+    tpc3_sumtot_array_bp = np.array(tpc3_sumtot_bp)
+    tpc3_sumtot_array_notbp = np.array(tpc3_sumtot_notbp)
+    tpc3_energies_array = np.array(tpc3_energies)
+    tpc3_energies_array_bp = np.array(tpc3_energies_bp)
+    tpc3_energies_array_notbp = np.array(tpc3_energies_notbp)
+    tpc3_tlengths_array = np.array(tpc3_tlengths)
+    tpc3_tlengths_array_bp = np.array(tpc3_tlengths_bp)
+    tpc3_tlengths_array_notbp = np.array(tpc3_tlengths_notbp)
+    tpc3theta_array_beampipe = np.array(tpc3_thetas_beampipe)
+    tpc3theta_array_notbp = np.array(tpc3_thetas_notbp)
+
+    tpc4theta_array = np.array(tpc4_thetas)
+    tpc4phi_array = np.array(tpc4_phis)
+    tpc4_sumtot_array = np.array(tpc4_sumtot)
+    tpc4_sumtot_array_bp = np.array(tpc4_sumtot_bp)
+    tpc4_sumtot_array_notbp = np.array(tpc4_sumtot_notbp)
+    tpc4_energies_array = np.array(tpc4_energies)
+    tpc4_energies_array_bp = np.array(tpc4_energies_bp)
+    tpc4_energies_array_notbp = np.array(tpc4_energies_notbp)
+    tpc4_tlengths_array = np.array(tpc4_tlengths)
+    tpc4_tlengths_array_bp = np.array(tpc4_tlengths_bp)
+    tpc4_tlengths_array_notbp = np.array(tpc4_tlengths_notbp)
+    tpc4theta_array_beampipe = np.array(tpc4_thetas_beampipe)
+    tpc4theta_array_notbp = np.array(tpc4_thetas_notbp)
+
+    beamsize = np.array(beamsize)
+
+    #arr3 = np.array([[0.0,0.0]]*len(tpc3_sumtot_array))
+    #df3 = pd.DataFrame({'Average Beamsize': avg_beamsize,
+    #                   'Average Rate'    : avg_rate, })
+
+    #df = pd.DataFrame(
+    #        {'Track Length': tpc3_tlengths_array, 'Sum TOT':tpc3_sumtot_array},
+    #        index = ['Event Number'], columns = ['Track Length', 'Sum TOT'])
+    #print(df)
+    #input('well?')
+
+    phi_bins = 20
+    theta_bins = 18
+
+    ### Begin plotting
+    if root_style == True :
+        color = 'black'
+        facecolor=None
+    elif root_style == False :
+        sns.set(color_codes=True)
+        color = None
+
+    ### Plot all figures individually
+    plt.hist(tpc3phi_array, phi_bins, range=[-100,100], weights = 
+            tpc3_energies_array, color = color, histtype='step')
+    plt.xlabel('$\phi$ ($^{\circ}$)')
+    plt.ylabel('Events per bin')
+    #plt.title('TPC3 Energy Weighted Neutron Recoil $\phi$')
+    plt.xlim(-100,100)
+    plt.savefig('tpc3_phi_weighted_raw.eps')
+    plt.show()
+
+    plt.hist(tpc3phi_array, phi_bins, range=[-100,100],
+            color = color, histtype='step')
+    plt.xlabel('$\phi$ ($^{\circ}$)')
+    plt.ylabel('Events per bin')
+    #plt.title('TPC3 Neutron Recoil $\phi$')
+    plt.xlim(-100, 100)
+    plt.savefig('tpc3_phi_unweighted_raw.eps')
+    plt.show()
+
+    plt.hist(tpc4phi_array, phi_bins, range=[-100,100], weights = 
+            tpc4_energies_array, color = color, histtype='step')
+    plt.xlabel('$\phi$ ($^{\circ}$)')
+    plt.ylabel('Events per bin')
+    #plt.title('TPC4 Energy Weighted Neutron Recoil $\phi$')
+    plt.xlim(-100, 100)
+    plt.savefig('tpc4_phi_weighted_raw.eps')
+    plt.show()
+
+    plt.hist(tpc4phi_array, phi_bins, range=[-100,100],
+            color = color, histtype='step')
+    plt.xlabel('$\phi$ ($^{\circ}$)')
+    plt.ylabel('Events per bin')
+    #plt.title('TPC4 Neutron Recoil $\phi$')
+    plt.xlim(-100, 100)
+    plt.savefig('tpc4_phi_unweighted_raw.eps')
+    plt.show()
+
+    plt.hist(tpc3theta_array, theta_bins, weights = tpc3_energies_array,
+            color = color, histtype='step')
+    plt.xlabel('$\\theta$ ($^{\circ}$)')
+    plt.ylabel('Events per bin')
+    #plt.title('TPC3 Energy Weighted Neutron Recoil $\\theta$')
+    #plt.xlim(0,180)
+    plt.savefig('tpc3_theta_weighted_raw.eps')
+    plt.show()
+
+    plt.hist(tpc3theta_array, theta_bins, 
+            color = color, histtype='step')
+    plt.xlabel('$\\theta$ ($^{\circ}$)')
+    plt.ylabel('Events per bin')
+    #plt.title('TPC3 Neutron Recoil $\\theta$')
+    #plt.xlim(0,180)
+    plt.savefig('tpc3_theta_unweighted_raw.eps')
+    plt.show()
+
+    plt.hist(tpc4theta_array, theta_bins, weights = tpc4_energies_array,
+            color = color, histtype='step')
+    plt.xlabel('$\\theta$ ($^{\circ}$)')
+    plt.ylabel('Events per bin')
+    #plt.title('TPC4 Energy Weighted Neutron Recoil $\\theta$')
+    plt.xlim(0,180)
+    plt.savefig('tpc4_theta_weighted_raw.eps')
+    plt.show()
+
+    plt.hist(tpc4theta_array, theta_bins, color = color, histtype='step')
+    plt.xlabel('$\\theta$ ($^{\circ}$)')
+    plt.ylabel('Events per bin')
+    #plt.title('TPC4 Neutron Recoil $\\theta$')
+    plt.xlim(0,180)
+    plt.savefig('tpc4_theta_unweighted_raw.eps')
+    plt.show()
+
+    plt.hist(tpc3theta_array_beampipe, theta_bins, color = color, histtype='step')
+    plt.xlabel('$\\theta$ ($^{\circ}$)')
+    plt.ylabel('Events per bin')
+    plt.xlim(0,180)
+    plt.savefig('tpc3_theta_unweighted_bp_raw.eps')
+    plt.show()
+
+    plt.hist(tpc4theta_array_beampipe, theta_bins, color = color, histtype='step')
+    plt.xlabel('$\\theta$ ($^{\circ}$)')
+    plt.ylabel('Events per bin')
+    plt.xlim(0,180)
+    plt.savefig('tpc4_theta_unweighted_bp_raw.eps')
+    plt.show()
+
+    plt.hist(tpc3theta_array_notbp, theta_bins, color = color, histtype='step')
+    plt.xlabel('$\\theta$ ($^{\circ}$)')
+    plt.ylabel('Events per bin')
+    plt.xlim(0,180)
+    plt.savefig('tpc3_theta_unweighted_nbp_raw.eps')
+    plt.show()
+
+    plt.hist(tpc4theta_array_notbp, theta_bins, color = color, histtype='step')
+    plt.xlabel('$\\theta$ ($^{\circ}$)')
+    plt.ylabel('Events per bin')
+    plt.xlim(0,180)
+    plt.savefig('tpc4_theta_unweighted_nbp_raw.eps')
+    plt.show()
+
+    plt.scatter(tpc3_tlengths_array, tpc3_energies_array, color = color)
+    #plt.set_title('Ch. 3 Track Length vs Sum Q')
+    plt.ylabel('Detected Charge (q)')
+    plt.xlabel('$\mu$m')
+    plt.xlim(-5000., 35000.)
+    plt.ylim(-1E7, 7E7)
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    plt.savefig('tpc3_dedx_all_raw.eps')
+    plt.show()
+
+    plt.scatter(tpc4_tlengths_array, tpc4_energies_array, color = color)
+    #plt.set_title('Ch. 4 Track Length vs Sum Q')
+    plt.ylabel('Detected Charge (q)')
+    plt.xlabel('$\mu$m')
+    plt.xlim(-5000., 35000.)
+    plt.ylim(-1E7, 7E7)
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    plt.savefig('tpc4_dedx_all_raw.eps')
+    plt.show()
+    
+    plt.scatter(tpc3_tlengths_array_bp, tpc3_energies_array_bp, color = color)
+    #plt.set_title('Ch. 3 Track Length vs Sum Q (beampipe)')
+    plt.xlim(-5000., 35000.)
+    plt.ylim(-1E7, 7E7)
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    plt.ylabel('Detected Charge (q)')
+    plt.xlabel('$\mu$m')
+    plt.savefig('tpc3_dedx_bp_raw.eps')
+    plt.show()
+
+    plt.scatter(tpc3_tlengths_array_notbp, tpc3_energies_array_notbp, color = color)
+    plt.xlim(-5000., 35000.)
+    plt.ylim(-1E7, 7E7)
+    plt.xlabel('$\mu$m')
+    plt.ylabel('Detected Charge (q)')
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    plt.savefig('tpc3_dedx_nbp_raw.eps')
+    plt.show()
+
+    plt.scatter(tpc4_tlengths_array_bp, tpc4_energies_array_bp, color = color)
+    plt.xlim(-5000., 35000.)
+    plt.ylim(-1E7, 7E7)
+    plt.ylabel('Detected Charge (q)')
+    plt.xlabel('$\mu$m')
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    plt.savefig('tpc4_dedx_bp_raw.eps')
+    plt.show()
+
+    plt.scatter(tpc4_tlengths_array_notbp, tpc4_energies_array_notbp, color = color)
+    plt.xlim(-5000., 35000.)
+    plt.ylim(-1E7, 7E7)
+    plt.ylabel('Detected Charge (q)')
+    plt.xlabel('$\mu$m')
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    plt.savefig('tpc4_dedx_nbp_raw.eps')
+    plt.show()
+
+    plt.scatter(tpc3_energies_array, tpc3phi_array, color = color)
+    plt.xlabel('Detected Charge (q)')
+    plt.ylabel('$\phi$ ($^{\circ}$)')
+    plt.ylim(-100.0,100.0)
+    plt.savefig('tpc3_evsphi_scatter_raw.eps')
+    plt.show()
+
+    plt.hist2d(tpc3_energies_array, tpc3phi_array, bins=(25,phi_bins))
+    plt.xlabel('Detected Charge (q)')
+    plt.ylabel('$\phi$ ($^{\circ}$)')
+    plt.ylim(-100.0,100.0)
+    plt.colorbar()
+    plt.savefig('tpc3_evsphi_heatmap_raw.eps')
+    plt.show()
+
+    plt.scatter(tpc3_energies_array, tpc3theta_array, color = color)
+    plt.xlabel('Detected Charge (q)')
+    plt.ylabel('$\\theta$ ($^{\circ}$)')
+    plt.ylim(0.,180.0)
+    plt.savefig('tpc3_evstheta_scatter_raw.eps')
+    plt.show()
+
+    plt.hist2d(tpc3_energies_array, tpc3theta_array, bins=(25,theta_bins))
+    plt.xlabel('Detected Charge (q)')
+    plt.ylabel('$\\theta$ ($^{\circ}$)')
+    plt.ylim(0.,180.0)
+    plt.colorbar()
+    plt.savefig('tpc3_evstheta_heatmap_raw.eps')
+    plt.show()
+
+    plt.scatter(tpc4_energies_array, tpc4phi_array, color = color)
+    plt.xlabel('Detected Charge (q)')
+    plt.ylabel('$\phi$ ($^{\circ}$)')
+    plt.ylim(-100.0,100.0)
+    plt.savefig('tpc4_evsphi_scatter_raw.eps')
+    plt.show()
+
+    plt.hist2d(tpc4_energies_array, tpc4phi_array, bins=(25,phi_bins))
+    plt.xlabel('Detected Charge (q)')
+    plt.ylabel('$\phi$ ($^{\circ}$)')
+    plt.ylim(-100.0,100.0)
+    plt.colorbar()
+    plt.savefig('tpc4_evsphi_heatmap_raw.eps')
+    plt.show()
+
+    plt.scatter(tpc4_energies_array, tpc4theta_array, color = color)
+    plt.xlabel('Detected Charge (q)')
+    plt.ylabel('$\\theta$ ($^{\circ}$)')
+    plt.ylim(0.,180.0)
+    plt.savefig('tpc4_evstheta_scatter_raw.eps')
+    plt.show()
+
+    plt.hist2d(tpc4_energies_array, tpc4theta_array, bins=(25,theta_bins))
+    plt.xlabel('Detected Charge (q)')
+    plt.ylabel('$\\theta$ ($^{\circ}$)')
+    plt.ylim(0.,180.0)
+    plt.colorbar()
+    plt.savefig('tpc4_evstheta_heatmap_raw.eps')
+    plt.show()
+
+    plt.scatter(tpc3phi_array, tpc3theta_array, color = color)
+    plt.xlabel('$\phi$ ($^{\circ}$)')
+    plt.ylabel('$\\theta$ ($^{\circ}$)')
+    plt.xlim(-100.0,100.0)
+    plt.ylim(0.,180.0)
+    plt.savefig('tpc3_thetavsphi_scatter_raw.eps')
+    plt.show()
+
+    plt.hist2d(tpc3phi_array, tpc3theta_array, bins=(phi_bins,theta_bins))
+    plt.xlabel('$\phi$ ($^{\circ}$)')
+    plt.ylabel('$\\theta$ ($^{\circ}$)')
+    plt.xlim(-100.0,100.0)
+    plt.ylim(0.,180.0)
+    plt.colorbar()
+    plt.savefig('tpc3_thetavsphi_heatmap_raw.eps')
+    plt.show()
+
+    plt.scatter(tpc4phi_array, tpc4theta_array, color = color)
+    plt.xlabel('$\phi$ ($^{\circ}$)')
+    plt.xlim(-100.0,100.0)
+    plt.ylabel('$\\theta$ ($^{\circ}$)')
+    plt.ylim(0.,180.0)
+    plt.savefig('tpc4_thetavsphi_scatter_raw.eps')
+    plt.show()
+
+    plt.hist2d(tpc4phi_array, tpc4theta_array, bins=(phi_bins,theta_bins))
+    plt.xlabel('$\phi$ ($^{\circ}$)')
+    plt.xlim(-100.0,100.0)
+    plt.ylabel('$\\theta$ ($^{\circ}$)')
+    plt.ylim(0.,180.0)
+    plt.colorbar()
+    plt.savefig('tpc4_thetavsphi_heatmap_raw.eps')
+    plt.show()
+
+    gain1 = 30.0
+    gain2 = 50.0
+    w = 35.075
+    tpc3_kev_array = tpc3_energies_array/(gain1 * gain2)*w*1E-3
+    tpc4_kev_array = tpc4_energies_array/(gain1 * gain2)*w*1E-3
+    tpc3_kev_array_bp = tpc3_energies_array_bp/(gain1 * gain2)*w*1E-3
+    tpc3_kev_array_notbp = tpc3_energies_array_notbp/(gain1 * gain2)*w*1E-3
+    tpc4_kev_array_bp = tpc4_energies_array_bp/(gain1 * gain2)*w*1E-3
+    tpc4_kev_array_notbp = tpc4_energies_array_notbp/(gain1 * gain2)*w*1E-3
+
+    plt.hist(tpc3_kev_array, bins=25, color=color, histtype='step')
+    plt.xlabel('Detected Energy (keV)')
+    plt.ylabel('Events per bin')
+    plt.xlim(0, 1600)
+    plt.yscale('log')
+    plt.ylim(0,4E2)
+    plt.savefig('tpc3_recoil_energies_raw.eps')
+    plt.show()
+
+    plt.hist(tpc3_kev_array_bp, bins=25, color=color, histtype='step')
+    plt.xlabel('Detected Energy (keV)')
+    plt.ylabel('Events per bin')
+    plt.xlim(0, 1600)
+    plt.yscale('log')
+    plt.ylim(0,4E2)
+    plt.savefig('tpc3_recoil_energies_bp_raw.eps')
+    plt.show()
+
+    plt.hist(tpc3_kev_array_notbp, bins=25, color=color, histtype='step')
+    plt.xlabel('Detected Energy (keV)')
+    plt.ylabel('Events per bin')
+    plt.xlim(0, 1600)
+    plt.yscale('log')
+    plt.ylim(0,4E2)
+    plt.savefig('tpc3_recoil_energies_notbp_raw.eps')
+    plt.show()
+
+    plt.hist(tpc4_kev_array_bp, bins=25, color=color, histtype='step')
+    plt.xlabel('Detected Energy (keV)')
+    plt.ylabel('Events per bin')
+    plt.xlim(0, 1600)
+    plt.yscale('log')
+    plt.ylim(0,4E2)
+    plt.savefig('tpc4_recoil_energies_bp_raw.eps')
+    plt.show()
+
+    plt.hist(tpc4_kev_array_notbp, bins=25, color=color, histtype='step')
+    plt.xlabel('Detected Energy (keV)')
+    plt.ylabel('Events per bin')
+    plt.xlim(0, 1600)
+    plt.yscale('log')
+    plt.ylim(0,4E2)
+    plt.savefig('tpc4_recoil_energies_notbp_raw.eps')
+    plt.show()
+
+    plt.hist(tpc4_kev_array, bins=25, color=color, histtype='step')
+    plt.xlabel('Detected Energy (keV)')
+    plt.ylabel('Events per bin')
+    plt.xlim(0, 1600)
+    plt.yscale('log')
+    plt.ylim(0,4E2)
+    plt.savefig('tpc4_recoil_energies_raw.eps')
+    plt.show()
+
+    ## Heatmap for E vs theta/phi
+    #heatmap, xedges, yedges = np.histogram2d(tpc3phi_array,
+    #        tpc3_energies_array, bins = (50, 50))
+    #extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+    #print(heatmap, xedges, yedges)
+
+    #plt.clf()
+    #plt.imshow(heatmap, extent=extent, origin ='lower')
+    #print('Attempt at TPC3 E vs phi heatmap')
+    #plt.show()
+
+    #plt.scatter(tpc3_energies_array, tpc3phi_array)
+    #plt.colorbar()
+    #plt.show()
+
+    ### Plot figures as subplots in canvases
+    ## Plot theta and phi, weighted by energy
+    #f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey=True)
+    #ax1.hist(tpc3phi_array, phi_bins, range=[-100,100], weights = 
+    #        tpc3_energies_array, color = color, histtype='step')
+    #ax1.set_title('Ch. 3 Energy Weighted Neutron Recoil $\phi$')
+    #ax3.hist(tpc4phi_array, phi_bins, range=[-100,100], weights = 
+    #        tpc4_energies_array, color = color, histtype='step')
+    #ax3.set_xlabel('Degrees')
+    #ax3.set_title('Ch. 4 Energy Weighted Neutron Recoil $\phi$')
+    #ax2.hist(tpc3theta_array, theta_bins, weights = tpc3_energies_array,
+    #        color = color, histtype='step')
+    #ax2.set_title('Ch. 3 Neutron Recoil $\\theta$')
+    #ax4.hist(tpc4theta_array, theta_bins, weights = tpc4_energies_array,
+    #        color = color, histtype='step')
+    #ax4.set_title('Ch. 4 Neutron Recoil $\\theta$')
+    #ax4.set_xlabel('Degrees')
+    ##f.savefig('theta_phi_weighted.eps')
+
+    #f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', 
+    #        sharey='col')
+    #ax1.hist(tpc3phi_array, phi_bins, range=[-100,100], weights = 
+    #        tpc3_energies_array, color = color, histtype='step')
+    #ax1.set_title('Ch. 3 Energy Weighted Neutron Recoil $\phi$')
+    #ax3.hist(tpc4phi_array, phi_bins, range=[-100,100], weights = 
+    #        tpc4_energies_array, color = color, histtype='step')
+    #ax3.set_xlabel('Degrees')
+    #ax3.set_title('Ch. 4 Energy Weighted Neutron Recoil $\phi$')
+    #ax2.hist(tpc3theta_array_beampipe, theta_bins, weights = 
+    #tpc3_energies_array_bp, color = color, histtype='step')
+    #ax2.set_title('Ch. 3 Neutron Recoil $\\theta$ (Beampipe cut)')
+    #ax4.hist(tpc4theta_array_beampipe, theta_bins, weights = 
+    #        tpc4_energies_array_bp, color = color, histtype='step')
+    #ax4.set_title('Ch. 4 Neutron Recoil $\\theta$ (Beampipe cut)')
+    #ax4.set_xlabel('Degrees')
+    ##f.savefig('theta_phi_weighted-beampipe.eps')
+
+    #f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', 
+    #        sharey='col')
+    #ax1.hist(tpc3phi_array, phi_bins, range=[-100,100], weights = 
+    #        tpc3_energies_array, color = color, histtype='step')
+    #ax1.set_title('Ch. 3 Energy Weighted Neutron Recoil $\phi$')
+    #ax3.hist(tpc4phi_array, phi_bins, range=[-100,100], weights = 
+    #        tpc4_energies_array, color = color, histtype='step')
+    #ax3.set_xlabel('Degrees')
+    #ax3.set_title('Ch. 4 Energy Weighted Neutron Recoil $\phi$')
+    #ax2.hist(tpc3theta_array_notbp, theta_bins, weights = 
+    #        tpc3_energies_array_notbp, color = color, histtype='step')
+    #ax2.set_title('Ch. 3 Neutron Recoil $\\theta$ (Outside beampipe)')
+    #ax4.hist(tpc4theta_array_notbp, theta_bins, weights = 
+    #        tpc4_energies_array_notbp, color = color, histtype='step')
+    #ax4.set_title('Ch. 4 Neutron Recoil $\\theta$ (Outside beampipe)')
+    #ax4.set_xlabel('Degrees')
+    ##f.savefig('theta_phi_weighted-outside_beampipe.eps')
+
+    #### Plot theta and phi, unweighted
+    #f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey=True)
+    #ax1.hist(tpc3phi_array, phi_bins, range=[-100,100], color = color, histtype='step')
+    #ax1.set_title('Ch. 3 Unweighted Neutron Recoil $\phi$')
+    #ax3.hist(tpc4phi_array, phi_bins, range=[-100,100], color = color, histtype='step')
+    #ax3.set_xlabel('Degrees')
+    #ax3.set_title('Ch. 4 Unweighted Neutron Recoil $\phi$')
+    #ax2.hist(tpc3theta_array, theta_bins, color = color, histtype='step')
+    #ax2.set_title('Ch. 3 Neutron Recoil $\\theta$')
+    #ax4.hist(tpc4theta_array, theta_bins, color = color, histtype='step')
+    #ax4.set_title('Ch. 4 Neutron Recoil $\\theta$')
+    #ax4.set_xlabel('Degrees')
+    ##f.savefig('theta_phi_unweighted.eps')
+
+    #f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', 
+    #        sharey='col')
+    #ax1.hist(tpc3phi_array, phi_bins, range=[-100,100], color = color, histtype='step')
+    #ax1.set_title('Ch. 3 Unweighted Neutron Recoil $\phi$')
+    #ax3.hist(tpc4phi_array, phi_bins, range=[-100,100], color = color, histtype='step')
+    #ax3.set_xlabel('Degrees')
+    #ax3.set_title('Ch. 4 Unweighted Neutron Recoil $\phi$')
+    #ax2.hist(tpc3theta_array_beampipe, theta_bins, color = color, histtype='step')
+    #ax2.set_title('Ch. 3 Neutron Recoil $\\theta$ (Beampipe cut)')
+    #ax4.hist(tpc4theta_array_beampipe, theta_bins, color = color, histtype='step')
+    #ax4.set_title('Ch. 4 Neutron Recoil $\\theta$ (Beampipe cut)')
+    #ax4.set_xlabel('Degrees')
+    ##f.savefig('theta_phi_unweighted-inside_beampipe.eps')
+
+    #f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', 
+    #        sharey='col')
+    #ax1.hist(tpc3phi_array, phi_bins, range=[-100,100], color = color, histtype='step')
+    #ax1.set_title('Ch. 3 Unweighted Neutron Recoil $\phi$')
+    #ax3.hist(tpc4phi_array, phi_bins, range=[-100,100], color = color, histtype='step')
+    #ax3.set_xlabel('Degrees')
+    #ax3.set_title('Ch. 4 Uneighted Neutron Recoil $\phi$')
+    #ax2.hist(tpc3theta_array_notbp, theta_bins, color = color, histtype='step')
+    #ax2.set_title('Ch. 3 Neutron Recoil $\\theta$ (Outside beampipe)')
+    #ax4.hist(tpc4theta_array_notbp, theta_bins, color = color, histtype='step')
+    #ax4.set_title('Ch. 4 Neutron Recoil $\\theta$ (Outside beampipe)')
+    #ax4.set_xlabel('Degrees')
+    ##f.savefig('theta_phi_unweighted-outside_beampipe.eps', dpi=200)
+
+    ##m, (dx1, dx2, dx3, dx4) = plt.subplots(1, 4)
+    ##dx1.hist(tpc3phi_array, phi_bins, range=[-100,100], weights = 
+    ##        tpc3_energies_array, color = color, histtype='step',
+    ##        label = 'Ch. 3')
+    ##dx1.hist(tpc4phi_array, phi_bins, range=[-100,100], weights = 
+    ##        tpc4_energies_array, color = 'blue', histtype='step',
+    ##        label = 'Ch. 4')
+    ##dx1.set_xlabel('$\phi$ ($^{\circ}$)')
+    ##dx1.legend(loc='best')
+    ##dx2.hist(tpc3theta_array_notbp, theta_bins, weights = 
+    ##        tpc3_energies_array_notbp, color = color, histtype='step',
+    ##        label = 'Ch. 3')
+    ##dx2.hist(tpc4theta_array_notbp, theta_bins, weights = 
+    ##        tpc4_energies_array_notbp, color = 'blue', histtype='step',
+    ##        label = 'Ch. 4')
+    ###ax4.set_title('Ch. 4 Neutron Recoil $\\theta$ (Outside beampipe)')
+    ##dx2.set_xlabel('$\\theta$ ($^{\circ}$)')
+    ##dx2.legend(loc='best')
+
+    #### One big plot of angular information
+    #m, ((dx1, dx2, dx3, dx4), (dx5, dx6, dx7, dx8)) = plt.subplots(2, 4,
+    #        sharey='row')
+    #        #sharex='col', sharey='row')
+    #dx1.hist(tpc3phi_array, phi_bins, range=[-100,100], weights = 
+    #        tpc3_energies_array, color = color, histtype='step',
+    #        label = 'Ch. 3')
+    #dx1.hist(tpc4phi_array, phi_bins, range=[-100,100], weights = 
+    #        tpc4_energies_array, color = 'blue', histtype='step',
+    #        label = 'Ch. 4')
+    #dx1.set_xlabel('$\phi$ ($^{\circ}$)')
+    #dx1.legend(loc='best')
+
+    #dx2.hist(tpc3theta_array, theta_bins, weights = 
+    #        tpc3_energies_array, color = color, histtype='step',
+    #        label = 'Ch. 3')
+    #dx2.hist(tpc4theta_array, theta_bins, weights = 
+    #        tpc4_energies_array, color = 'blue', histtype='step',
+    #        label = 'Ch. 4')
+    #dx2.set_xlabel('$\\theta$ ($^{\circ}$)')
+
+    #dx3.hist(tpc3theta_array_beampipe, theta_bins, weights = 
+    #        tpc3_energies_array_bp, color = color, histtype='step',
+    #        label = 'Ch. 3')
+    #dx3.hist(tpc4theta_array_beampipe, theta_bins, weights = 
+    #        tpc4_energies_array_bp, color = 'blue', histtype='step',
+    #        label = 'Ch. 4')
+    ##dx3.legend(loc='best')
+    ##dx3.set_xlabel('$\\theta$  ($^{\circ}$)')
+    #dx3.set_xlabel('$\\theta$  (Pass beampipe cut)')
+
+    #dx4.hist(tpc3theta_array_notbp, theta_bins, weights = 
+    #        tpc3_energies_array_notbp, color = color, histtype='step',
+    #        label = 'Ch. 3')
+    #dx4.hist(tpc4theta_array_notbp, theta_bins, weights = 
+    #        tpc4_energies_array_notbp, color = 'blue', histtype='step',
+    #        label = 'Ch. 4')
+    ##dx4.legend(loc='best')
+    #dx4.set_xlabel('$\\theta$  (Fail beampipe cut)')
+
+    #dx5.hist(tpc3phi_array, phi_bins, range=[-100,100],
+    #        color = color, histtype='step',
+    #        label = 'Ch. 3')
+    #dx5.hist(tpc4phi_array, phi_bins, range=[-100,100],
+    #        color = 'blue', histtype='step',
+    #        label = 'Ch. 4')
+    ##dx5.legend(loc='best')
+    #dx5.set_xlabel('$\phi$ ($^{\circ}$)')
+
+    #dx6.hist(tpc3theta_array, theta_bins,
+    #        color = color, histtype='step',
+    #        label = 'Ch. 3')
+    #dx6.hist(tpc4theta_array, theta_bins, 
+    #        color = 'blue', histtype='step',
+    #        label = 'Ch. 4')
+    #dx6.set_xlabel('$\\theta$ ($^{\circ}$)')
+
+    #dx7.hist(tpc3theta_array_beampipe, theta_bins, 
+    #        color = color, histtype='step',
+    #        label = 'Ch. 3')
+    #dx7.hist(tpc4theta_array_beampipe, theta_bins,
+    #        color = 'blue', histtype='step',
+    #        label = 'Ch. 4')
+    ##dx7.legend(loc='best')
+    #dx7.set_xlabel('$\\theta$  (Pass beampipe cut)')
+
+    #dx8.hist(tpc3theta_array_notbp, theta_bins, 
+    #        color = color, histtype='step',
+    #        label = 'Ch. 3')
+    #dx8.hist(tpc4theta_array_notbp, theta_bins, 
+    #        color = 'blue', histtype='step',
+    #        label = 'Ch. 4')
+    #dx8.set_xlabel('$\\theta$  (Fail beampipe cut)')
+    ##dx8.legend(loc='best')
+
+    ### Plot dE/dx
+    g, (bx1, bx2 ) = plt.subplots(1, 2, sharex=True, sharey=True)
+    bx1.scatter(tpc3_tlengths_array, tpc3_energies_array, color = color)
+    bx1.set_title('Ch. 3 Track Length vs Sum Q')
+    bx1.set_ylabel('Sum Q')
+    bx1.set_xlabel('$\mu$m')
+    bx1.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    bx2.scatter(tpc4_tlengths_array, tpc4_energies_array, color = color)
+    bx2.set_title('Ch. 4 Track Length vs Sum Q')
+    bx2.set_xlabel('$\mu$m')
+    bx2.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    
+    g, ((cx1, cx2), (cx3, cx4)) = plt.subplots(2, 2, sharex=True, sharey=True)
+    cx1.scatter(tpc3_tlengths_array_bp, tpc3_energies_array_bp, color = color)
+    cx1.set_title('Ch. 3 Track Length vs Sum Q (beampipe)')
+    #cx1.set_xlim(-5000., 35000.)
+    cx1.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    cx1.set_ylabel('Sum Q')
+    cx3.scatter(tpc3_tlengths_array_notbp, tpc3_energies_array_notbp,
+            color = color)
+    cx3.set_title('Ch. 3 Track Length vs Sum Q (not beampipe)')
+    cx3.set_xlabel('$\mu$m')
+    cx3.set_ylabel('Sum Q')
+    cx2.scatter(tpc4_tlengths_array_bp, tpc4_energies_array_bp, color = color)
+    cx2.set_title('Ch. 4 Track Length vs Sum Q (beampipe)')
+    cx2.set_xlim(-5000., 35000.)
+    cx4.scatter(tpc4_tlengths_array_notbp, tpc4_energies_array_notbp,
+            color = color)
+    cx4.set_title('Ch. 4 Track Length vs Sum Q (not beampipe)')
+    cx4.set_xlabel('$\mu$m')
+    cx4.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    #bx1 = plt.scatter(tpc3_tlengths_array, tpc3_sumtot_array)
+    #cx1=seaborn.heatmap(tpc3_tlengths_sumtot_array, annot=True, fmt='f')
+    
+
+    #h, (cx1, cx2) = plt.subplots(1,2, sharex=True, sharey=True)
+    #seaborn.set()
+    #cx1=seaborn.heatmap(tpc3_tlengths_sumtot_array, annot=True, fmt='f')
+    #cx2=seaborn.heatmap(tpc4_tlengths_array, tpc4_sumtot_array, annot=True)
+    
+    ### Show energy sum vs tlength against sumtot vs tlength
+    #g, ((bx1, bx2), (bx3, bx4)) = plt.subplots(2, 2, sharex=True)
+    #bx1.scatter(tpc3_tlengths_array, tpc3_energies_array)
+    #bx1.set_title("TPC3 'Sum E' vs Track Length")
+    #bx1.set_ylim(0, 100000)
+    #bx3.scatter(tpc4_tlengths_array, tpc4_energies_array)
+    #bx3.set_title("TPC4 'Sum E' vs Track Length")
+    #bx3.set_xlabel('\t$\mu$m')
+    #bx2.scatter(tpc3_tlengths_array, tpc3_sumtot_array)
+    #bx2.set_title('TPC3 Sum TOT vs Track Length')
+    #bx4.scatter(tpc4_tlengths_array, tpc4_sumtot_array)
+    #bx4.set_title('TPC4 Sum TOT vs Track Length')
+    #bx4.set_xlabel('\t$\mu$m')
+
+    print('Number of neutrons:')
+    print('TPC3:', len(tpc3phi_array))
+    print('TPC4:', len(tpc4phi_array))
+    print('Total:', neutrons)
+    print('Check:', len(tpc3phi_array) + len(tpc4phi_array))
+    print('\nBeampipe cut:')
+    print('TPC3:', len(tpc3theta_array_beampipe))
+    print('TPC4:', len(tpc4theta_array_beampipe))
+    print('\nOutside Beampipe:')
+    print('TPC3:', len(tpc3theta_array_notbp))
+    print('TPC4:', len(tpc4theta_array_notbp))
+    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    plt.show()
+
+    ''' Attempts at doing this in ternary operations using numpy built in 
+    iterators.  Will hopefully do this later '''
+    #for event in data:
+    #    neutron_events = (np.where(event.TPC3_PID_neutrons == 1) if 
+    #            ('TPC3_N_neutrons' in event.dtype.names) else 0)
+    #    tpc3_phis = np.where(event.TPC3_phi for event.TPC3_PID_neutrons == 1)
+
+        #if 'TPC3_N_neutrons' in event.dtype.names:
+        #    print(len(event.TPC3_PID_neutrons), 'Event number', event.event)
+        #if event.TPC3_N_neutrons[0] > 0:
 
 #def energy_study(datapath):
 def energy_study(gain_path):
@@ -2727,15 +3655,17 @@ def main():
     
     ### Use BEAST v2 data
     datapath = str(home) + '/BEAST/data/v2/'
-    simpath = str(home) + '/BEAST/sim/'
+    simpath = str(home) + '/BEAST/sim/v4.1/'
 
     #rate_vs_beamsize(datapath)
-    sim_rate_vs_beamsize(simpath)
-    #peter_toushek(datapath)
+    #sim_rate_vs_beamsize(simpath)
+    peter_toushek(datapath)
+    #sim_peter_toushek(simpath)
     #neutron_study(datapath)
     #energy_study(datapath)
 
-    inpath = str(home) + '/BEAST/data/TPC/tpc_toushekrun/2016-05-29/'
+    inpath = str(home) + '/BEAST/data/TPC/tpc_toushekrun/rh_coords/2016-05-29/'
+    #neutron_study_raw(inpath)
     #energy_study(inpath)
     #gain_study(inpath)
     #pid_study(inpath)
