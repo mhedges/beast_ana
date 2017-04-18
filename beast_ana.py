@@ -1967,10 +1967,11 @@ def neutron_study_raw(datapath):
     neutrons = 0
 
     branches = ['neutron', 'theta', 'phi', 'de_dx', 'e_sum', 'tot_sum',
-            'detnb','hitside','t_length']
+            'detnb','hitside','t_length', 'npoints']
     ### Looping over many files
     for subdir, dirs, files in os.walk(datapath):
         for f in files :
+            if '.DS' in f: continue
             r_file = str(subdir) + str('/') + str(f)
 
             #if '.root' not in f: continue
@@ -1983,18 +1984,22 @@ def neutron_study_raw(datapath):
 
             data = root2rec(r_file, branches=branches)
 
+            data.e_sum *= 1.43 if 'tpc4_' in r_file else 1.0
+
             counter_3 = 0
             counter_4 = 0
 
             for event in data:
-                #if event.neutron == 1 and event.de_dx > 0.35 :
-                de_dx = (event.tot_sum/event.t_length if event.hitside == 0
+
+                ### Neutron selections
+                dQdx = (event.e_sum/event.t_length if event.hitside == 0
                         and event.t_length > 0 else 0)
-                neutron = (1 if event.hitside == 0 and de_dx > 0.35
+
+                neutron = (1 if event.hitside == 0 
+                        and dQdx > 178.0
+                        and event.npoints > 40 
                         else 0)
-                #neutron = (1 if event.neutron == 1 and event.de_dx > 0.35
-                #        else 0)
-                #neutron = 1 if event.neutron == 1 else 0
+
                 if neutron == 1 :
                     phi = event.phi
                     theta = event.theta
@@ -2105,13 +2110,13 @@ def neutron_study_raw(datapath):
     tpc4_sumtot_array_notbp = np.array(tpc4_sumtot_notbp)
 
     tpc4_energies_array = np.array(tpc4_energies)
-    tpc4_energies_array *= 1.43
+    #tpc4_energies_array *= 1.43
 
     tpc4_energies_array_bp = np.array(tpc4_energies_bp)
-    tpc4_energies_array_bp *= 1.43
+    #tpc4_energies_array_bp *= 1.43
 
     tpc4_energies_array_notbp = np.array(tpc4_energies_notbp)
-    tpc4_energies_array_notbp *= 1.43
+    #tpc4_energies_array_notbp *= 1.43
 
     tpc4_tlengths_array = np.array(tpc4_tlengths)
     tpc4_tlengths_array_bp = np.array(tpc4_tlengths_bp)
@@ -2747,62 +2752,108 @@ def neutron_study_raw(datapath):
     #    #if event.TPC3_N_neutrons[0] > 0:
     return tpc3theta_array, tpc4theta_array, tpc3phi_array, tpc4phi_array
 
-def neutron_study_sim(datapath):
-    ch3_thetas = np.zeros(9)
-    ch4_thetas = np.zeros(9)
-    ch3_phis = np.zeros(18)
-    ch4_phis = np.zeros(18)
-    branches = ['TPC_angular_rate_av']
+def neutron_study_sim(infile):
+    sumQ = []
+    tlengths = []
+    thetas = []
+    phis = []
+    pdg = []
+    detnbs = []
 
-    for f in os.listdir(datapath):
-        ifile = datapath
-        ifile += f
+    truth_thetas = []
+    truth_phis = []
 
-        print(ifile)
+    names = (
+        ['TPC3_Touschek_LER', 'TPC4_Touschek_LER',
+        'TPC3_Touschek_HER', 'TPC4_Touschek_HER',
+        'TPC3_Coulomb_LER', 'TPC4_Coulomb_LER',
+        'TPC3_Coulomb_HER', 'TPC4_Coulomb_HER',
+        'TPC3_Brems_LER', 'TPC4_Brems_LER',
+        'TPC3_Brems_HER', 'TPC4_Brems_HER']
+        )
 
-        data = root2rec(ifile, 'tout', branches=branches)
+    truth_file = '/Users/BEASTzilla/BEAST/sim/v4.1/mc_beast_run_2016-02-09.root'
 
-        for event in data:
-            #ch3_angles = event.TPC_angular_rate_av[0].flatten()
-            #ch4_angles = event.TPC_angular_rate_av[1].flatten()
-            #print(event.TPC_angular_rate_av[0][0])
-            #print(event.TPC_angular_rate_av[1][0])
-            for i in range(9):
-                ch3_thetas[i] += np.sum(event.TPC_angular_rate_av[0][i])
-                ch4_thetas[i] += np.sum(event.TPC_angular_rate_av[1][i])
-                ch3_phis += event.TPC_angular_rate_av[0][i]
-                ch4_phis += event.TPC_angular_rate_av[1][i]
-                #print(event.TPC_angular_rate_av[0][i])
-                #print(ch3_phis)
-            #print(ch3_thetas)
-            #input('well?')
 
-    ch3_phis = np.roll(ch3_phis, 9)
-    ch4_phis = np.roll(ch4_phis, 9)
+    base_name = infile
+    for name in names :
+        infile = base_name + name + str('.root')
+        print(infile)
+        data = root2rec(infile)
+        if 'TPC4' in infile: data.e_sum *= (4.0/3.0)
 
-    #ch3_thetas /= 10.0
-    #ch4_thetas /= 10.0
-    #ch3_phis /= 10.0
-    #ch4_phis /= 10.0
+        cuts = (
+                #(data.neutron == 1)
+                (data.hitside == 0)
+                & (data.e_sum/data.t_length > 178.0)
+                & (data.npoints > 40)
+                )
+        sumQ = np.concatenate([
+                               sumQ,
+                               data.e_sum[cuts]
+                               ])
+        tlengths = np.concatenate([
+                                   tlengths,
+                                   data.t_length[cuts]
+                                   ])
+        thetas = np.concatenate([
+                                 thetas,
+                                 data.theta[cuts]
+                                 ])
+        phis = np.concatenate([
+                               phis, 
+                               data.phi[cuts]
+                               ])
+        pdg = np.concatenate([
+                              pdg, 
+                              data.pdg[cuts]
+                              ])
+        detnbs = np.concatenate([
+                                 detnbs,
+                                 data.detnb[cuts]
+                                 ])
 
-    #ch3_thetas /= (len(ch3_thetas)*2)
-    #ch4_thetas /= (len(ch4_thetas)*2)
-    #ch3_phis /= (len(ch3_phis)*2)
-    #ch4_phis /= (len(ch4_phis)*2)
+        ### Get the truth angles
+        data = root2rec(truth_file, name)
+        truth_thetas = np.concatenate([truth_thetas, data.truth_Theta[cuts]])
+        truth_phis = np.concatenate([truth_phis, data.truth_phi[cuts]])
+    
+    folded_phis = phis
+    folded_thetas = thetas
 
-    print('Angle arrays from sim function:')
-    print(type(ch3_thetas),type(ch4_thetas),type(ch3_phis),type(ch4_phis))
-    print(ch3_thetas)
-    print(ch4_thetas)
-    print(ch3_phis)
-    print(ch4_phis)
-    #print(np.sum(ch3_thetas))
-    #print(np.sum(ch4_thetas))
-    #print(np.sum(ch3_phis))
-    #print(np.sum(ch4_phis))
-    #input('well?')
+    folded_truth_phis = truth_phis
+    folded_truth_thetas = truth_thetas
 
-    return ch3_thetas, ch4_thetas, ch3_phis, ch4_phis
+    sels = (
+            (np.abs(thetas)<360)
+            & (np.abs(phis)<360)
+            )
+
+    ### Correct for theta and (phi) outside of 180 (360) degrees
+    folded_thetas[( (thetas > 180) & (sels) )] -= 180
+    folded_thetas[( (folded_thetas < 0) & (sels) )] += 180
+
+    folded_phis[( (phis < -360) & (sels) )] += 360
+    folded_phis[( (phis > 360) & (sels) )] -= 360
+
+    folded_thetas[( (folded_phis < -90) & (sels) )] *= -1
+    folded_thetas[( (folded_phis < -90) & (sels) )] += 180
+
+    folded_thetas[( (folded_phis > 90) & (sels) )] *= -1
+    folded_thetas[( (folded_phis > 90) & (sels) )] += 180
+
+    folded_phis[( (folded_phis < -90) & (sels) )] += 180
+    folded_phis[( (folded_phis > 90) & (sels) )] -= 180
+
+    ### Histogram the arrays
+    ch3_thetas = np.histogram(folded_thetas[detnbs == 2], bins=9, range=[0,180])
+    ch4_thetas = np.histogram(folded_thetas[detnbs == 3], bins=9, range=[0,180])
+
+    ch3_phis = np.histogram(folded_phis[detnbs == 2], bins=18, range=[-90,90])
+    ch4_phis = np.histogram(folded_phis[detnbs == 3], bins=18, range=[-90,90])
+    
+    #return ch3_thetas[0], ch4_thetas[0], ch3_phis[0], ch4_phis[0]
+
 
 #def energy_study(datapath):
 def energy_study(gain_path):
@@ -2829,6 +2880,8 @@ def energy_study(gain_path):
 
             data = root2rec(r_file, branches=branches)
 
+            if data.detnb[0] == 4 : data.e_sum *= 1.43
+
             #ifile = datapath
             #ifile += f
 
@@ -2846,7 +2899,7 @@ def energy_study(gain_path):
             for event in data:
                 #neutron = (1 if (event.hitside == 0 and event.de_dx > 0.35) 
                 #        else 0)
-                neutron = (1 if (event.neutron == 1 and event.de_dx > 0.35) 
+                neutron = (1 if (event.neutron == 1 and event.de_dx > 178.0) 
                         else 0)
                 #neutron = 1 if event.neutron == 1 else 0
                 
@@ -2961,7 +3014,7 @@ def energy_study(gain_path):
 
     n_3 = np.array(n_3)
     n_4 = np.array(n_4)
-    n_4 *= 1.43
+    #n_4 *= 1.43
 
     gain1 = 30.0
     gain2 = 50.0
@@ -3004,17 +3057,18 @@ def energy_study(gain_path):
     p_errs = minu.errors
     print(pars, p_errs)
 
-    #h, (cx1) = plt.subplots(1, 1)
+    h, (cx1) = plt.subplots(1, 1)
     #cx1.hist(n_3, bins = 25, color='black', histtype='step')
-    #cx1.errorbar(bin_centers, n3_hist[0], yerr=n3_errs, fmt='o', color='black')
-    #cx1.set_xlabel('Detected Energy (keV)')
-    #cx1.set_ylabel('Events per bin')
-    #cx1.set_xlim(0, 1600)
-    #cx1.set_yscale('log')
-    #cx1.set_ylim(0,5E3)
-    #h.savefig('tpc3_neutron_energies.eps') 
+    cx1.errorbar(bin_centers, n3_hist[0], yerr=n3_errs, fmt='o', color='black')
+    cx1.set_xlabel('Detected Energy (keV)')
+    cx1.set_ylabel('Events per bin')
+    cx1.set_xlim(0, 1600)
+    cx1.set_yscale('log')
+    cx1.set_ylim(0,5E3)
     #chi2.draw(minu,no_plot=True)
-    chi2.draw(minu)
+    chi2.draw(minu, parts=True)
+    cx1.errorbar(bin_centers, n3_hist[0], yerr=n3_errs, fmt='o', color='black')
+    h.savefig('tpc3_neutron_energies.eps') 
     #plt.show()
 
     n4_hist = np.histogram(n_4, bins=25)
@@ -3039,9 +3093,10 @@ def energy_study(gain_path):
     cx2.set_yscale('log')
     cx2.set_ylim(0,5E3)
     cx2.set_yscale('log')
-    #g.savefig('tpc4_neutron_energies.eps') 
-    #g.savefig('tpc4_neutron_energies_corrected.eps') 
     chi2.draw(minu)
+    cx2.errorbar(bin_centers, n4_hist[0], yerr=n4_errs, fmt='o', color='black')
+    #g.savefig('tpc4_neutron_energies.eps') 
+    g.savefig('tpc4_neutron_energies_corrected.eps') 
     plt.show()
 
     input('done plotting')
@@ -3682,6 +3737,7 @@ def pid_study(datapath):
             r_file = str(subdir) + str('/') + str(f)
             print(r_file)
             data = root2rec(r_file, branches=branches)
+            if '4' in r_file : data.e_sum *= 1.43
             for event in data:
                 #neutron = (1 if event.hitside == 0 and event.de_dx > 0.35
                 #        else 0)
@@ -3719,12 +3775,12 @@ def pid_study(datapath):
     energies_all = np.array(energies_all)
     ch3_energies_all = np.array(ch3_energies_all)
     ch4_energies_all = np.array(ch4_energies_all)
-    ch4_energies_all *= 1.43
+    #ch4_energies_all *= 1.43
 
     energies_n = np.array(energies_n)
     ch3_energies_n = np.array(ch3_energies_n)
     ch4_energies_n = np.array(ch4_energies_n)
-    ch4_energies_n *= 1.43
+    #ch4_energies_n *= 1.43
 
     gain1 = 30.0
     gain2 = 50.0
@@ -3767,6 +3823,7 @@ def pid_study(datapath):
     plt.show()
 
 def event_inspection(datapath):
+    ### Data
     good_files = [1464483600,
             1464487200,
             1464490800,
@@ -3782,47 +3839,69 @@ def event_inspection(datapath):
             1464501600,
             1464505200]
 
-    #rows = 45
-    #cols = 49
-    #fig, axs = plt.subplots(rows, cols)
-    #n_neutrons = 0
+    n_neutrons = 0
 
-    #counter = 0
+    phis = []
     x_bins = 80
     y_bins = 336
-    branches = ['hitside', 'de_dx', 'col', 'row', 'tot']
+    branches = [
+                'hitside', 
+                'de_dx', 
+                 'col', 
+                 'row', 
+                 'tot', 
+                 'neutron', 
+                 'phi',
+                 'npoints',
+                 't_length'
+                 ]
     for subdir, dirs, files in os.walk(datapath):
         for f in files:
             strs = f.split('_')
-            if int(strs[-2]) not in good_files : continue
+            
+            ### Data
+            #if int(strs[-2]) not in good_files : continue #For data files
+            if '.root' not in f or 'bak' in f: continue
             r_file = str(subdir) + str('/') + str(f)
             print(r_file)
             data = root2rec(r_file, branches=branches)
             #n_neutrons = sum(data.neutron)
             #grid = int(np.sqrt(n_neutrons)) + 1
-            n_events = ((data.hitside == 0) & (data.de_dx > 0.35)).sum()
+            n_events = (
+                    (data.hitside == 0) 
+                    & (data.de_dx > 178.0) 
+                    & (data.phi > 85.0)
+                    & (data.phi < 95.0)
+                    & (data.npoints > 40)
+                    ).sum()
             grid = int(np.sqrt(n_events)) + 1
             print(n_events, grid)
             #input('well?')
+            if n_events == 0 : continue
             fig, axs = plt.subplots(grid, grid)
             counter = 0
             for event in data:
-                if event.neutron == 1 and event.de_dx > 0.35 :
+                if (event.neutron == 1 and event.de_dx > 178.0 
+                        and event.phi >85.0 and event.phi < 95.0
+                        and event.npoints>40):
                 #if event.hitside == 0 and event.de_dx > 0.35 :
                     #plt.hist2d(event.col, event.row, 
                     #plt.hist2d(event.col, event.row, bins = (
                     #    range(0, x_bins, 1) , range(0, y_bins, 1) ), weights = event.tot + 1)
                     axs.flat[counter].hist2d( event.col, event.row, bins = (
                             range(0, x_bins, 1) , range(0, y_bins, 1) ),
-                            weights = event.tot, cmin = 0, cmax = 15)
+                            weights = event.tot, cmin = -1, cmax = 15,
+                            cmap=('YlOrBr'))
                     axs.flat[counter].set_frame_on(False)
                     axs.flat[counter].get_yaxis().set_visible(False)
                     axs.flat[counter].get_xaxis().set_visible(False)
                     axs.flat[counter].set_xlim(0, x_bins)
                     axs.flat[counter].set_ylim(0, y_bins)
-                    #axs.flat[counter].clim(0,15)
+                    #axs.flat[counter].pcolorfast('YlOrBr')
                     cbar = mpl.colorbar.ColorbarBase(axs.flat[counter],
-                            norm=mpl.colors.Normalize(vmin=0, vmax = 15) )
+                            cmap='YlOrBr',
+                            norm=mpl.colors.Normalize(vmin=-1, vmax = 15),
+                            )
                     cbar.set_clim(0,15)
                     counter += 1
             #plt.set_frame_on(False)
@@ -3846,7 +3925,7 @@ def event_inspection(datapath):
             #fig.colorbar(_, cax=axs)
             
             #plt.colorbar()
-            fname = f.split('.')[0] + 'sim_cuts'
+            fname = f.split('.')[0]
             pname = fname + str('.eps')
             print(pname)
             fig.savefig(pname, format='eps')
@@ -3899,32 +3978,81 @@ def compare_angles(datapath, simpath):
     phis = np.arange(-90,90,10)
     thetas = np.arange(0,180,20)
 
+    (n, bins, patches) = plt.hist(data_angles[0], bins=theta_bins,
+            range=[0,180])
+    f = plt.figure()
+    ax1 = f.add_subplot(111)
+    ax1.hist(thetas, bins=theta_bins,
+           weights=sim_angles[0]/np.sum(sim_angles[0]), 
+           label='Sim', range=[0,180])
+    ax1.errorbar(thetas+10, n/np.sum(n), yerr=np.sqrt(n)/np.sum(n),
+           color='black', fmt='o',label='Data')
+    ax1.set_xlabel('Ch. 3 $\\theta$ ($^{\circ}$)')
+    ax1.set_ylabel('Events per bin / All events')
+    ax1.set_xlim(-10,190)
+    ax1.legend(loc='best')
+    f.savefig('TPC3_theta_datavsmc.eps')
 
+    (n, bins, patches) = plt.hist(data_angles[1], bins=theta_bins,
+            range=[0,180])
+    g = plt.figure()
+    bx1 = g.add_subplot(111)
+    bx1.hist(thetas, bins=theta_bins,
+           weights=sim_angles[1]/np.sum(sim_angles[1]), label='Sim',
+           range=[0,180])
+    bx1.errorbar(thetas+10, n/np.sum(n), yerr=np.sqrt(n)/np.sum(n), color='black',
+           fmt='o', label='Data')
+    bx1.set_xlabel('Ch. 4 $\\theta$ ($^{\circ}$)')
+    bx1.set_ylabel('Events per bin / All events')
+    bx1.set_xlim(-10,190)
+    bx1.legend(loc='best')
+    g.savefig('TPC4_theta_datavsmc.eps')
+
+    (n, bins, patches) = plt.hist(data_angles[2], bins=phi_bins, range=[-90,90])
+    h = plt.figure()
+    cx1 = h.add_subplot(111)
+    cx1.hist(phis, bins=phi_bins, weights=sim_angles[2]/np.sum(sim_angles[2]),
+           label='Sim', range=[-90,90])
+    cx1.errorbar(phis+5, n/np.sum(n), yerr=np.sqrt(n)/np.sum(n), color='black',
+           fmt='o', label='Data')
+    cx1.set_xlabel('Ch. 3 $\phi$ ($^{\circ}$)')
+    cx1.set_ylabel('Events per bin / All events')
+    cx1.set_xlim(-100,100)
+    cx1.legend(loc='best')
+    h.savefig('TPC3_phi_datavsmc.eps')
+
+    (n, bins, patches) = plt.hist(data_angles[3], bins=phi_bins, range=[-90,90])
+    k = plt.figure()
+    dx1 = k.add_subplot(111)
+    dx1.hist(phis, bins=phi_bins, weights=sim_angles[3]/np.sum(sim_angles[3]),
+            label='Sim', range=[-90,90])
+    dx1.errorbar(phis+5, n/np.sum(n), yerr=np.sqrt(n)/np.sum(n), color='black',
+            fmt='o', label='Data')
+    dx1.set_xlabel('Ch. 4 $\phi$ ($^{\circ}$)')
+    dx1.set_ylabel('Events per bin / All events')
+    dx1.set_xlim(-100,100)
+    dx1.legend(loc='best')
+    k.savefig('TPC4_phi_datavsmc.eps')
+
+
+    ### No normalization
     (n, bins, patches) = plt.hist(data_angles[0], bins=theta_bins,
             range=[0,180])
     f = plt.figure()
     ax1 = f.add_subplot(111)
 
-    ### Normalize arrays by sum of elements
-    #ax1.hist(thetas, bins=theta_bins,
-    #        weights=sim_angles[0]/np.sum(sim_angles[0]), 
-    #        label='Sim', range=[0,180])
-    #ax1.errorbar(thetas+10, n/np.sum(n), yerr=np.sqrt(n)/np.sum(n),
-    #        color='black', fmt='o',label='Data')
-
-    ### No normalization
     ax1.hist(thetas, bins=theta_bins,
-            weights=sim_angles[0], 
+            weights=sim_angles[0]*3, 
             label='Sim', range=[0,180])
     ax1.errorbar(thetas+10, n, yerr=np.sqrt(n),
             color='black', fmt='o',label='Data')
+
     ax1.set_xlabel('Ch. 3 $\\theta$ ($^{\circ}$)')
     ax1.set_ylabel('Events per bin / All events')
     ax1.set_xlim(-10,190)
     ax1.legend(loc='best')
 
-    #f.savefig('TPC3_theta_datavsmc_simsel.eps')
-    f.savefig('TPC3_theta_datavsmc_simsel_nonormalized.eps')
+    f.savefig('TPC3_theta_datavsmc_nonormalized.eps')
     
 
     (n, bins, patches) = plt.hist(data_angles[1], bins=theta_bins,
@@ -3932,40 +4060,25 @@ def compare_angles(datapath, simpath):
     g = plt.figure()
     bx1 = g.add_subplot(111)
 
-    ### Normalize arrays by sum of elements
-    #bx1.hist(thetas, bins=theta_bins,
-    #        weights=sim_angles[1]/np.sum(sim_angles[1]), label='Sim',
-    #        range=[0,180])
-    #bx1.errorbar(thetas+10, n/np.sum(n), yerr=np.sqrt(n)/np.sum(n), color='black',
-    #        fmt='o', label='Data')
-
-    ### No normalization
     bx1.hist(thetas, bins=theta_bins,
-            weights=sim_angles[1], label='Sim',
+            weights=sim_angles[1]*3, label='Sim',
             range=[0,180])
     bx1.errorbar(thetas+10, n, yerr=np.sqrt(n), color='black',
             fmt='o', label='Data')
+
     bx1.set_xlabel('Ch. 4 $\\theta$ ($^{\circ}$)')
     bx1.set_ylabel('Events per bin / All events')
     bx1.set_xlim(-10,190)
     bx1.legend(loc='best')
 
-    #g.savefig('TPC4_theta_datavsmc_simsel.eps')
-    g.savefig('TPC4_theta_datavsmc_simsel_nonormalized.eps')
+    g.savefig('TPC4_theta_datavsmc_nonormalized.eps')
 
 
     (n, bins, patches) = plt.hist(data_angles[2], bins=phi_bins, range=[-90,90])
     h = plt.figure()
     cx1 = h.add_subplot(111)
 
-    ### Normalize arrays by sum of elements
-    #cx1.hist(phis, bins=phi_bins, weights=sim_angles[2]/np.sum(sim_angles[2]),
-    #        label='Sim', range=[-90,90])
-    #cx1.errorbar(phis+5, n/np.sum(n), yerr=np.sqrt(n)/np.sum(n), color='black',
-    #        fmt='o', label='Data')
-
-    ### No normalization
-    cx1.hist(phis, bins=phi_bins, weights=sim_angles[2],
+    cx1.hist(phis, bins=phi_bins, weights=sim_angles[2]*3,
             label='Sim', range=[-90,90])
     cx1.errorbar(phis+5, n, yerr=np.sqrt(n), color='black',
             fmt='o', label='Data')
@@ -3974,38 +4087,31 @@ def compare_angles(datapath, simpath):
     cx1.set_ylabel('Events per bin / All events')
     cx1.set_xlim(-100,100)
     cx1.legend(loc='best')
-    #h.savefig('TPC3_phi_datavsmc_simsel.eps')
-    h.savefig('TPC3_phi_datavsmc_simsel_nonormalized.eps')
+
+    h.savefig('TPC3_phi_datavsmc_nonormalized.eps')
 
 
     (n, bins, patches) = plt.hist(data_angles[3], bins=phi_bins, range=[-90,90])
     k = plt.figure()
     dx1 = k.add_subplot(111)
 
-    ### Normalize arrays by sum of elements
-    #dx1.hist(phis, bins=phi_bins, weights=sim_angles[3]/np.sum(sim_angles[3]),
-    #        label='Sim', range=[-90,90])
-    #dx1.errorbar(phis+5, n/np.sum(n), yerr=np.sqrt(n)/np.sum(n), color='black',
-    #        fmt='o', label='Data')
-
-    ### No normalization
-    dx1.hist(phis, bins=phi_bins, weights=sim_angles[3],
+    dx1.hist(phis, bins=phi_bins, weights=sim_angles[3]*3,
             label='Sim', range=[-90,90])
     dx1.errorbar(phis+5, n, yerr=np.sqrt(n), color='black',
             fmt='o', label='Data')
+
     dx1.set_xlabel('Ch. 4 $\phi$ ($^{\circ}$)')
     dx1.set_ylabel('Events per bin / All events')
     dx1.set_xlim(-100,100)
     dx1.legend(loc='best')
-    #k.savefig('TPC4_phi_datavsmc_simsel.eps')
-    k.savefig('TPC4_phi_datavsmc_simsel_nonormalized.eps')
+
+    k.savefig('TPC4_phi_datavsmc_nonormalized.eps')
 
 
     plt.show()
 
 
 def cut_study(datapath):
-
     good_files = [1464483600,
             1464487200,
             1464490800,
@@ -4031,42 +4137,60 @@ def cut_study(datapath):
                 't_length',
                 'neutron',
                 'detnb',
-                'par_fit_err']
+                'par_fit_err',
+                'phi',
+                'theta',
+                'npoints']
 
     t_lengths = []
     sumQ = []
     theta_errs= []
     phi_errs = []
 
-    neutrons = 0
-    selected_neutrons = 0
+    phis = []
+    thetas = []
+
+    npoints = []
+
+    total_events = 0
+    hitside_pass = 0
+    dQdx_pass = 0
+    npoints_pass = 0
 
     for subdir, dirs, files in os.walk(datapath):
         for f in files:
+            if '.DS' in f : continue
             strs = f.split('_')
             if int(strs[-2]) not in good_files : continue
             r_file = str(subdir) + str('/') + str(f)
             print(r_file)
             data = root2rec(r_file, branches=branches)
-            neutrons += np.sum(data.neutron)
+
+            if 'tpc4' in r_file: data.e_sum *= 1.43
 
             cuts = (
-                    (data.neutron == 1)
+                    (data.hitside == 0)
                     & (data.t_length > 0)
-                    & (data.tot_sum/data.t_length > 0.08)
-                    & (data.t_length > 500)
+                    & (data.e_sum /data.t_length > 178.0)
+                    & (data.npoints > 40)
                     )
 
-            #cuts = (data.hitside == 0)
+            total_events += len(data)
+            hitside_pass += len(data[data.hitside==0])
+            dQdx_pass += len(data[( 
+                                  (data.hitside==0)
+                                  & (data.t_length > 0)
+                                  & ( (data.e_sum/data.t_length) > 178.0)
+                                  )] )
+            npoints_pass += len(data[cuts])
 
-            #print(data.neutron[cuts])
-            #input('well?')
-            selected_neutrons += np.sum(data.neutron[cuts])
             t_lengths = np.concatenate([t_lengths, data.t_length[cuts]])
-            if data.detnb[0] == 4: data.e_sum *= 1.43 
             sumQ = np.concatenate([sumQ, data.e_sum[cuts]]) 
             theta_errs = np.concatenate([theta_errs, data.par_fit_err[cuts, 3]])
             phi_errs = np.concatenate([phi_errs, data.par_fit_err[cuts, 4]])
+            phis = np.concatenate([phis, data.phi[cuts]])
+            thetas = np.concatenate([thetas, data.theta[cuts]])
+            npoints = np.concatenate([npoints, data.npoints[cuts]])
 
     # Convert from radians -> degrees
     theta_errs *= 180./np.pi
@@ -4074,42 +4198,84 @@ def cut_study(datapath):
 
     dQdx = sumQ / t_lengths
 
-    print('Total number of neutrons:', neutrons)
-    print('Selected number of neutrons:', selected_neutrons)
+    # Convert from Q -> keV
+    gain1 = 30.0
+    gain2 = 50.0
+    w = 35.075
+    sumE = w * 1E-3 * sumQ/(gain1 * gain2)
+
+    print('Total number of events:', total_events)
+    print('Pass edge cut:', hitside_pass)
+    print('Pass dQdx cut:', dQdx_pass)
+    print('Pass npoints cut (all cuts):',npoints_pass)
     print(len(theta_errs), len(np.nonzero(theta_errs)[0]))
     print(len(phi_errs), len(np.nonzero(phi_errs)[0]))
 
-    print('Minimum sumQ:', np.sum(sumQ))
-
-    plt.scatter(t_lengths, theta_errs)
+    f = plt.figure()
+    ax1 = f.add_subplot(111)
+    ax1.scatter(t_lengths, theta_errs)
     #plt.xlim([-100,2000])
-    plt.xlabel('Track length ($\mu$m)')
+    ax1.set_xlabel('Track length ($\mu$m)')
     #plt.ylim([-0.1,1.])
-    plt.ylabel('$\\theta$ uncertainty')
-    plt.show()
+    ax1.set_ylabel('$\\theta$ uncertainty')
 
-    plt.scatter(t_lengths, phi_errs)
+    g = plt.figure()
+    ax2 = g.add_subplot(111)
+    ax2.scatter(t_lengths, phi_errs)
     #plt.xlim([-100,5000])
-    plt.xlabel('Track length ($\mu$m)')
+    ax2.set_xlabel('Track length ($\mu$m)')
     #plt.ylim([-0.1,2.])
-    plt.ylabel('$\phi$ uncertainty')
-    plt.show()
+    ax2.set_ylabel('$\phi$ uncertainty')
 
-    plt.scatter(t_lengths, sumQ)
-    plt.show()
+    h = plt.figure()
+    ax3 = h.add_subplot(111)
+    ax3.scatter(t_lengths, sumQ)
+    ax3.set_xlabel('Track Length ($\mu$m)')
+    ax3.set_ylabel('Detected charge')
 
-    plt.scatter(sumQ, theta_errs)
+    k = plt.figure()
+    ax4 = k.add_subplot(111)
+    ax4.scatter(sumE, theta_errs)
     #plt.xlim([-1E5,2E6])
-    plt.xlabel('Sum q')
+    ax4.set_xlabel('Sum E (keV)')
     #plt.ylim([-0.1,1.])
-    plt.ylabel('$\\theta$ uncertainty')
-    plt.show()
+    ax4.set_ylabel('$\\theta$ uncertainty')
 
-    plt.scatter(sumQ, phi_errs)
+    l = plt.figure()
+    ax5 = l.add_subplot(111)
+    ax5.scatter(sumE, phi_errs)
     #plt.xlim([-1E5,2E6])
-    plt.xlabel('Sum q')
+    ax5.set_xlabel('Sum E (keV)')
     #plt.ylim([-0.1,2.])
-    plt.ylabel('$\phi$ uncertainty')
+    ax5.set_ylabel('$\phi$ uncertainty')
+
+    m = plt.figure()
+    ax6 = m.add_subplot(111)
+    ax6.hist(phis, bins = 100, range=[-360,360])
+    ax6.set_xlabel('Phi')
+
+    n = plt.figure()
+    ax7 = n.add_subplot(111)
+    ax7.hist(thetas, bins = 100, range=[-360,360])
+    ax7.set_xlabel('Theta')
+
+    p = plt.figure()
+    ax8 = p.add_subplot(111)
+    ax8.scatter(npoints, phi_errs)
+
+    #import seaborn as sns
+    #sns.jointplot(x=npoints, y=phi_errs, stat_func=None, xlim=[-100,1000], ylim=[-10,100]).set_axis_labels("Npoints", "Phi err (degrees)")
+
+    q = plt.figure()
+    ax9 = q.add_subplot(111)
+    ax9.hist(npoints, bins=100)
+    ax9.set_xlabel('Npoints')
+
+    r = plt.figure()
+    bx1 = r.add_subplot(111)
+    bx1.hist(npoints, bins=100, range=[-10,100])
+    bx1.set_xlabel('Npoints')
+
     plt.show()
 
 
@@ -4122,9 +4288,10 @@ def main():
     
     ### Use BEAST v2 data
     datapath = str(home) + '/BEAST/data/v2/'
-    simpath = str(home) + '/BEAST/sim/v4.1/'
+    #simpath = str(home) + '/BEAST/sim/v4.1/'
+    simpath = '/Users/BEASTzilla/BEAST/sim/sim_refitter/'
 
-    inpath = str(home) + '/BEAST/data/TPC/tpc_toushekrun/2016-05-29/'
+    inpath = str(home) + '/BEAST/data/TPC/tpc_toushekrun/2016-05-29_nonorm_fit/'
 
     #compare_toushek(datapath, simpath)
     #compare_angles(inpath, simpath)
@@ -4136,13 +4303,14 @@ def main():
 
     #neutron_study_raw(inpath)
     #neutron_study_sim(simpath)
-    energy_study(inpath)
+    #energy_study(inpath)
     #gain_study(inpath)
-    #pid_study(inpath)
+    pid_study(inpath)
     #event_inspection(inpath)
+    event_inspection(simpath)
     #fit_study(datapath)
 
-    cut_study(inpath)
-
+    #cut_study(inpath) 
+    
 if __name__ == "__main__":
     main()
