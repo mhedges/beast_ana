@@ -3163,66 +3163,144 @@ def energy_study(datapath, simpath):
                   1464505200]
     ### Populate data arrays
     print('Populating data arrays ...')
-    data_hitsides = []
-    data_Q = []
-    data_tlengths = []
-    data_detnbs = []
-    data_npoints = []
-    data_min_rets = []
-    
-
-    branches = ['de_dx', 
-                'e_sum', 
-                'detnb',
-                'hitside', 
-                'npoints',
-                'min_ret', 
-                't_length']
-
-    for f in os.listdir(datapath):
-        strs = f.split('_')
-        if int(strs[-2]) not in good_files : continue
-
-        r_file = str(datapath) + str(f)
-        print(r_file)
-
-        data = root2rec(r_file, branches=branches)
-
-        if data.detnb[0] == 3 : data.e_sum *= 1.18
-        if data.detnb[0] == 4 : data.e_sum *= 1.64
-
-        data_hitsides = np.concatenate([data_hitsides, data.hitside])
-        data_Q = np.concatenate([data_Q, data.e_sum])
-        data_tlengths = np.concatenate([data_tlengths, data.t_length])
-        data_detnbs = np.concatenate([data_detnbs, data.detnb])
-        data_npoints = np.concatenate([data_npoints, data.npoints])
-        data_min_rets = np.concatenate([data_min_rets, data.min_ret])
 
     gain1 = 30.0
     gain2 = 50.0
     W = 35.075
 
-    data_E = data_Q/(gain1 * gain2) * W * 1E-3
+    if 'v3.1' not in datapath :
+        data_hitsides = []
+        data_Q = []
+        data_tlengths = []
+        data_detnbs = []
+        data_npoints = []
+        data_min_rets = []
+        
 
-    data_dQdx = data_Q/data_tlengths
-    data_dQdx[data_tlengths==0] = 0
+        branches = ['de_dx', 
+                    'e_sum', 
+                    'detnb',
+                    'hitside', 
+                    'npoints',
+                    'min_ret', 
+                    't_length']
 
-    # Selections in data
-    ch3_data_sels = (
-                (data_detnbs == 3)
-                & (data_hitsides == 0)
-                & (data_min_rets == 0)
-                & (data_dQdx > 500.0)
-                & (data_npoints > 40)
-                )
+        for f in os.listdir(datapath):
+            strs = f.split('_')
+            if int(strs[-2]) not in good_files : continue
 
-    ch4_data_sels = (
-                (data_detnbs == 4)
-                & (data_hitsides == 0)
-                & (data_min_rets == 0)
-                & (data_dQdx > 500.0)
-                & (data_npoints > 40)
-                )
+            r_file = str(datapath) + str(f)
+            print(r_file)
+
+            data = root2rec(r_file, branches=branches)
+
+            if data.detnb[0] == 3 : data.e_sum *= 1.18
+            if data.detnb[0] == 4 : data.e_sum *= 1.64
+
+            data_hitsides = np.concatenate([data_hitsides, data.hitside])
+            data_Q = np.concatenate([data_Q, data.e_sum])
+            data_tlengths = np.concatenate([data_tlengths, data.t_length])
+            data_detnbs = np.concatenate([data_detnbs, data.detnb])
+            data_npoints = np.concatenate([data_npoints, data.npoints])
+            data_min_rets = np.concatenate([data_min_rets, data.min_ret])
+
+        data_E = data_Q/(gain1 * gain2) * W * 1E-3
+
+        data_dQdx = data_Q/data_tlengths
+        data_dQdx[data_tlengths==0] = 0
+
+        # Selections in data
+        ch3_data_sels = (
+                    (data_detnbs == 3)
+                    & (data_hitsides == 0)
+                    & (data_min_rets == 0)
+                    & (data_dQdx > 500.0)
+                    & (data_npoints > 40)
+                    )
+
+        ch4_data_sels = (
+                    (data_detnbs == 4)
+                    & (data_hitsides == 0)
+                    & (data_min_rets == 0)
+                    & (data_dQdx > 500.0)
+                    & (data_npoints > 40)
+                    )
+
+
+    elif 'v3.1' in datapath:
+
+        ch3_data_Q = []
+        ch4_data_Q = []
+
+        for f in os.listdir(datapath):
+            r_file = str(datapath) + str(f)
+            data = root2rec(r_file, 'tout')
+
+            for i in range(np.max(data.subrun)+1) :
+                if i == 0 : continue
+                TPC3_sumQ = stretch(data[( (data.subrun == i)
+                                            & (data.SKB_LER_injectionFlag_safe == 0) 
+                                            )],
+                        ['TPC3_sumQ'])['TPC3_sumQ']
+                TPC3_sumQ *= 1.18
+
+                TPC3_npoints = stretch(data[( (data.subrun == i)
+                                            & (data.SKB_LER_injectionFlag_safe == 0) 
+                                            )],
+                        ['TPC3_npoints'])['TPC3_npoints']
+
+                TPC3_dEdx = stretch(data[( (data.subrun == i)
+                                            & (data.SKB_LER_injectionFlag_safe == 0) )],
+                        ['TPC3_dEdx'])['TPC3_dEdx']
+                TPC3_dEdx *= 1.18
+
+                TPC3_PID_neutrons = stretch(data[( (data.subrun == i)
+                                            & (data.SKB_LER_injectionFlag_safe == 0) )],
+                        ['TPC3_PID_neutrons'])['TPC3_PID_neutrons']
+
+                TPC4_sumQ = stretch(data[( (data.subrun == i)
+                                            & (data.SKB_LER_injectionFlag_safe == 0)
+                                            )],
+                        ['TPC4_sumQ'])['TPC4_sumQ']
+                TPC4_sumQ *= 1.64
+
+                TPC4_npoints = stretch(data[( (data.subrun == i)
+                                            & (data.SKB_LER_injectionFlag_safe == 0) 
+                                            )],
+                        ['TPC4_npoints'])['TPC4_npoints']
+
+                TPC4_dEdx = stretch(data[( (data.subrun == i)
+                                            & (data.SKB_LER_injectionFlag_safe == 0) )],
+                        ['TPC4_dEdx'])['TPC4_dEdx']
+                TPC4_dEdx *= 1.64
+
+                TPC4_PID_neutrons = stretch(data[( (data.subrun == i)
+                                            & (data.SKB_LER_injectionFlag_safe == 0) )],
+                        ['TPC4_PID_neutrons'])['TPC4_PID_neutrons']
+
+                ch3_data_Q = np.concatenate([ch3_data_Q, 
+                                             TPC3_sumQ[(
+                                                        (TPC3_PID_neutrons == 1)
+                                                      & (TPC3_dEdx > 500.0)
+                                                      & (TPC3_npoints > 40)
+                                                      )]
+                                             ])
+
+                ch4_data_Q = np.concatenate([ch4_data_Q, 
+                                             TPC4_sumQ[(
+                                                        (TPC4_PID_neutrons == 1)
+                                                      & (TPC4_dEdx > 500.0)
+                                                      & (TPC4_npoints > 40)
+                                                      )]
+                                             ])
+            ch3_data_E = ch3_data_Q/(gain1 * gain2) * W * 1E-3
+            ch4_data_E = ch4_data_Q/(gain1 * gain2) * W * 1E-3
+
+
+    print('Printing data arrays ... ')
+    print(len(ch3_data_E))
+    print(len(ch4_data_E))
+
 
     ### Populate simulation arrays
     print('Data arrays populated.  Moving to simulation ...')
@@ -3427,13 +3505,23 @@ def energy_study(datapath, simpath):
 
     ### Debug
     print('Printing number of events in Data, Touschek, and Beamgas in ch3, ch4')
-    print(len(data_E[ch3_data_sels]) )
-    print(len(sim_E[ch3_touschek_sels]) )
-    print(len(sim_E[ch3_beamgas_sels]) )
+    if 'v3.1' not in datapath :
+        print(len(data_E[ch3_data_sels]) )
+        print(len(sim_E[ch3_touschek_sels]) )
+        print(len(sim_E[ch3_beamgas_sels]) )
 
-    print(len(data_E[ch4_data_sels]) )
-    print(len(sim_E[ch4_touschek_sels]) )
-    print(len(sim_E[ch4_beamgas_sels]) )
+        print(len(data_E[ch4_data_sels]) )
+        print(len(sim_E[ch4_touschek_sels]) )
+        print(len(sim_E[ch4_beamgas_sels]) )
+
+    elif 'v3.1' in datapath :
+        print(len(ch3_data_E) )
+        print(len(sim_E[ch3_touschek_sels]) )
+        print(len(sim_E[ch3_beamgas_sels]) )
+
+        print(len(ch4_data_E) )
+        print(len(sim_E[ch4_touschek_sels]) )
+        print(len(sim_E[ch4_beamgas_sels]) )
 
     ### Define exponential function for fitting recoil energy spectra
 
@@ -3441,8 +3529,19 @@ def energy_study(datapath, simpath):
         return a*np.exp(-b*x)
 
     ### Histogram the arrays
-    (ch3_data_n, ch3_data_bins, ch3_data_patches) = plt.hist(data_E[ch3_data_sels], bins=25, range=[0,
-        np.max(data_E[ch3_data_sels])] )
+    if 'v3.1' not in datapath :
+        (ch3_data_n, ch3_data_bins, ch3_data_patches) = plt.hist(data_E[ch3_data_sels], bins=25, range=[0,
+            np.max(data_E[ch3_data_sels])] )
+
+        (ch4_data_n, ch4_data_bins, ch4_data_patches) = plt.hist(data_E[ch4_data_sels], bins=25, range=[0,
+            np.max(data_E[ch4_data_sels])] )
+
+    elif 'v3.1' in datapath :
+        (ch3_data_n, ch3_data_bins, ch3_data_patches) = plt.hist(ch3_data_E, bins=25, range=[0,
+            np.max(ch3_data_E)] )
+        (ch4_data_n, ch4_data_bins, ch4_data_patches) = plt.hist(ch4_data_E, bins=25, range=[0,
+            np.max(ch4_data_E)] )
+
 
     ch3_data_bin_centers = 0.5 * (ch3_data_bins[:-1] + ch3_data_bins[1:])
 
@@ -3457,9 +3556,6 @@ def energy_study(datapath, simpath):
     ch3_data_p_errs = ch3_data_minu.errors
     print('\nPrinting Ch3 data fit parameters')
     print(ch3_data_pars, ch3_data_p_errs)
-
-    (ch4_data_n, ch4_data_bins, ch4_data_patches) = plt.hist(data_E[ch4_data_sels], bins=25, range=[0,
-        np.max(data_E[ch4_data_sels])] )
 
     ch4_data_bin_centers = 0.5 * (ch4_data_bins[:-1] + ch4_data_bins[1:])
 
@@ -3613,7 +3709,7 @@ def energy_study(datapath, simpath):
 
     ax1.hist([ch3_data_bin_centers,ch3_data_bin_centers], bins=ch3_data_bins,
             weights=ch3_bkg_weights,
-            range=[0,np.max(data_E[ch3_data_sels])],
+            range=[0,np.max(ch3_data_E)],
             label=['Touschek MC','Beam Gas MC'],
             stacked=True, color=['C0','C1'])
 
@@ -3636,7 +3732,7 @@ def energy_study(datapath, simpath):
 
     ax2.hist([ch4_data_bin_centers,ch4_data_bin_centers], bins=ch4_data_bins,
             weights=ch4_bkg_weights,
-            range=[0,np.max(data_E[ch4_data_sels])],
+            range=[0,np.max(ch4_data_E)],
             label=['Touschek MC','Beam Gas MC'],
             stacked=True, color=['C0','C1'])
 
@@ -4299,6 +4395,12 @@ def compare_toushek(datapath, simpath):
     print('Printing rates and subrun durations from data ... ')
     print(data_toushek)
 
+    print('Printing total number of neutrons detected in data ... ')
+    print('Ch 3:', (data_toushek[0] * data_toushek[1]).sum())
+    print('Ch 4:', (data_toushek[2] * data_toushek[3]).sum())
+    input('well?')
+
+
     # Get rate vs beamsize from BEAST sim ntuples
     sim_toushek = neutron_rate_sim(simpath)
 
@@ -4325,6 +4427,7 @@ def compare_toushek(datapath, simpath):
     #input('well?')
 
     subrun_times, subrun_BeamGas, subrun_Touschek, TouschekPlot_vals = calc_sim_weights(datapath, simpath)
+
     #exp_IPZ2 = TouschekPlot_vals[1]
     exp_IPZ2 = subrun_BeamGas
 
@@ -4483,6 +4586,11 @@ def compare_toushek(datapath, simpath):
     #        )
     #weighted_sim_minu = iminuit.Minuit(weighted_sim_chi2)
     #weighted_sim_minu.migrad()
+
+    print('Printing number of neutrons of each type in MC ... ')
+    print('Ch. 3:', (ch3_weighted_rates*subrun_times).sum() )
+    print('Ch. 4:', (ch4_weighted_rates*subrun_times).sum() )
+    input('well?')
 
     g = plt.figure()
     ax0 = g.add_subplot(111)
@@ -7499,7 +7607,7 @@ def main():
     #neutron_study_raw(inpath)
     #neutron_study_sim(v4_simpath)
     #energy_study(inpath, v52_simpath)
-    #energy_study(v31_datapath, v52_simpath)
+    energy_study(v31_datapath, v52_simpath)
     #gain_study(inpath)
     #energy_eff_study(inpath)
     #pid_study(inpath, simpath)
