@@ -26,6 +26,8 @@ from os.path import expanduser
 
 root_style = True
 
+plt.style.use('grayscale')
+
 ### Set matplotlib style
 # Atlas style
 #import atlas_style_mpl
@@ -176,6 +178,7 @@ def neutron_rate_data(datapath):
                 'TPC4_npoints',
                 'subrun',
                 'SKB_LER_injectionFlag_safe ',
+                'length'
                 ]
 
 
@@ -223,12 +226,12 @@ def neutron_rate_data(datapath):
             ch3 = TPC3_PID_neutrons[(
                                     (TPC3_dEdx * 1.18 > 500.0)
                                     & (TPC3_npoints > 40)
-                                    #& (TPC3_length > 2000)
+                                    & (TPC3_length > 2000)
                                     )].sum()/len(data[data.subrun == i])
             ch4 = TPC4_PID_neutrons[(
                                     (TPC4_dEdx * 1.64 > 500.0)
                                     & (TPC4_npoints > 40)
-                                    #& (TPC4_length > 2000)
+                                    & (TPC4_length > 2000)
                                     )].sum()/len(data[data.subrun == i])
             lengths.append(len(data[data.subrun == i]))
 
@@ -2643,10 +2646,10 @@ def neutron_study_sim(simpath):
               & (min_rets == 0)
               & (dQdx > 500)
               & (npoints > 40)
-              & (thetas > 0)
-              & (thetas < 180)
-              & (np.abs(phis) < 360)
-              #& (tlengths > 2000)
+              #& (thetas > 0)
+              #& (thetas < 180)
+              #& (np.abs(phis) < 360)
+              & (tlengths > 2000)
             )
 
     ch4_sels = (
@@ -2656,10 +2659,10 @@ def neutron_study_sim(simpath):
               & (min_rets == 0)
               & (dQdx > 500)
               & (npoints > 40)
-              & (thetas > 0)
-              & (thetas < 180)
-              & (np.abs(phis) < 360)
-              #& (tlengths > 2000)
+              #& (thetas > 0)
+              #& (thetas < 180)
+              #& (np.abs(phis) < 360)
+              & (tlengths > 2000)
             )
 
     #### Correct for theta and (phi) outside of 180 (360) degrees
@@ -2836,6 +2839,11 @@ def energy_eff_study(gain_path):
                 'de_dx',
                 'neutron',
                 'npoints',
+                'detnb',
+                'proton',
+                'top_alpha',
+                'bottom_alpha',
+                'e_sum',
                 ]
 
 
@@ -2843,148 +2851,80 @@ def energy_eff_study(gain_path):
         for f in files:
             r_file = str(subdir) + str('/') + str(f)
 
-            data = root2rec(r_file)
-
-            #ifile = datapath
-            #ifile += f
-
-            #rfile = TFile(ifile)
-            #tree = rfile.Get('tout')
-            #test = str(tree)
-            #if (test == '<ROOT.TObject object at 0x(nil)>' or tree.GetEntries() == 
-            #        0): continue
+            data = root2rec(r_file, branches=branches)
 
             print(r_file)
 
-            #all_e = []
-            #n_e = []
+            if 'tpc3' in r_file : 
+                data.e_sum *= 1.18
+                data.de_dx *= 1.18
+            elif 'tpc4' in r_file :
+                data.e_sum *= 1.64
+                data.de_dx *= 1.64
+            n_3 = np.concatenate([
+                        n_3,
+                        data.e_sum[(
+                                  (data.hitside == 0)
+                                  & (data.de_dx > 500.0 )
+                                  & (data.npoints > 40)
+                                  & (data.detnb[0] == 3)
+                                  )]
+                                ])
 
-            for event in data:
-                
-                if event.hitside == 0 : all_e.append(event.e_sum)
-                #if event.neutron == 1 : n_e.append(event.e_sum)
-                if (event.neutron == 1 and event.detnb == 3
-                        and event.e_sum * 1.18 > 500.0 and
-                        event.npoints > 40) :
-                    n_3.append(event.e_sum * 1.18)
-                    n_e.append(event.e_sum * 1.18)
-                if (event.neutron == 1 and event.detnb == 4
-                        and event.e_sum * 1.18 > 500.0 and
-                        event.npoints > 40) :
-                    n_4.append(event.e_sum * 1.64)
-                    n_e.append(event.e_sum * 1.64)
-                #if event.top_alpha == 1 : topa_e.append(event.e_sum)
-                #if event.bottom_alpha == 1 : bota_e.append(event.e_sum)
-                #if event.proton == 1 : p_e.append(event.e_sum)
+            n_4 = np.concatenate([
+                        n_4,
+                        data.e_sum[(
+                                  (data.hitside == 0)
+                                  & (data.de_dx > 500.0 )
+                                  & (data.npoints > 40)
+                                  & (data.detnb[0] == 4)
+                                  )]
+                                ])
 
+            n_e = np.concatenate([
+                        n_e,
+                        data.e_sum[(
+                                  (data.hitside == 0)
+                                  & (data.de_dx > 500.0 )
+                                  & (data.npoints > 40)
+                                  )]
+                                ])
 
+            all_e = np.concatenate([
+                        all_e,
+                        data.e_sum[( (data.hitside == 0) )]
+                                  ])
 
-
-
-
-    all_e = np.array(all_e)
-    n_e = np.array(n_e)
-
-    n_3 = np.array(n_3)
-    n_4 = np.array(n_4)
-    
-    h, (cx1) = plt.subplots(1, 1)
-    cx1.hist(n_3, bins = 100, color='black', histtype='step')
-        
-    cx1.set_xlabel('Recoil Energy (KeV)')
-    cx1.set_ylabel('Events per Bin')
-    cx1.set_yscale('log')
-    #h.savefig('tpc3_neutron_energies.eps') 
-    plt.show()
-
-    h, (cx1) = plt.subplots(1, 1)
-    cx1.hist(n_4, bins = 100, color='black', histtype='step')
-        
-    cx1.set_xlabel('Recoil Energy (KeV)')
-    cx1.set_ylabel('Events per Bin')
-    cx1.set_yscale('log')
-    #h.savefig('tpc4_neutron_energies.eps') 
-    plt.show()
-
-    input('done plotting')
     max_e = np.max(all_e)
-    hist_all = Hist(100, 0., max_e)
-    hist_all.fill_array(all_e)
-    np_hist_all = np.histogram(all_e, bins=500, range=[0,max_e])
-
     max_ne = np.max(n_e)
+
+    np_hist_all = np.histogram(all_e, bins=500, range=[0,max_ne])
+    np_hist_n = np.histogram(n_e, bins=500, range=[0,max_ne])
 
     np_hist_n3 = np.histogram(n_3, bins=500, range=[0,max_ne])
     np_hist_n4 = np.histogram(n_4, bins=500, range=[0,max_ne])
 
-    np_hist_n = np.histogram(n_e, bins=500, range=[0,max_e])
+    bins = np_hist_n[1]
 
-    all_e = np.array(all_e)
+    divided_bins_kev = 0.5 * (bins[:-1] + bins[1:])
+
+    gain1 = 30.0
+    gain2 = 50.0
+    w = 35.075
+
+    divided_bins_n = 0.5 * (np_hist_n[1][:-1] + np_hist_n[1][1:])
+    divided_bins_kev = divided_bins_kev/(gain1 * gain2)*w*1E-3
+
     divided_e = np.array([0.]*500)
-    divided_e3 = np.array([0.]*500)
-    divided_e4 = np.array([0.]*500)
-    divided_bins = np.array([0.]*500)
     div_errs = np.array([0.]*500)
-
-    n3_bins = np.array([0.]*500)
-    n4_bins = np.array([0.]*500)
-
-    t_errs = np.array([0.]*500)
-    b_errs = np.array([0.]*500)
-    n_errs = np.array([0.]*500)
-    p_errs = np.array([0.]*500)
-    x_errs = np.array([0.]*500)
-    o_errs = np.array([0.]*500)
-
-    n3_errs = np.array([0.]*500)
-    n4_errs = np.array([0.]*500)
     for i in range(500):
         e_a = np_hist_all[0][i]
         n_a = np_hist_n[0][i]
         divided_e[i] = n_a/e_a if e_a != 0 else 0
 
-        e_3 = np_hist_all[0][i]
-        divided_e3[i] = n_3/e_a if e_a != 0 else 0
-        divided_bins[i] = (np_hist_n[1][i]+np_hist_n[1][i+1])/2.0
-        #div_errs[i] = (np.sqrt(n_a)/n_a)*divided_e[i] if n_a != 0 else 0
-        n3_bins[i] = (np_hist_n3[1][i]+np_hist_n3[1][i+1])/2.0
-        n4_bins[i] = (np_hist_n4[1][i]+np_hist_n4[1][i+1])/2.0
+        div_errs[i] = (np.sqrt(n_a)/n_a)*divided_e[i] if n_a != 0 else 0
 
-        #t_err = np_hist_t[0][i]
-        #t_errs[i] = (np.sqrt(t_err)/t_err)
-
-        n_err = np_hist_n[0][i]
-        n_errs[i] = (np.sqrt(n_err)/n_err)
-
-        #b_err = np_hist_b[0][i]
-        #b_errs[i] = (np.sqrt(b_err)/b_err)
-
-        #p_err = np_hist_p[0][i]
-        #p_errs[i] = (np.sqrt(p_err)/p_err)
-
-        #x_err = np_hist_x[0][i]
-        #x_errs[i] = (np.sqrt(x_err)/x_err)
-
-        #o_err = np_hist_o[0][i]
-        #o_errs[i] = (np.sqrt(o_err)/o_err)
-
-        n3_err = np_hist_n3[0][i]
-        n3_errs[i] = (np.sqrt(n3_err)/n3_err)
-
-        n4_err = np_hist_n4[0][i]
-        n4_errs[i] = (np.sqrt(n4_err)/n4_err)
-
-    gain1 = 30.0
-    gain2 = 50.0
-    w = 35.075
-    divided_bins_kev = divided_bins/(gain1 * gain2)*w*1E-3
-    #print(divided_bins_kev)
-    #print(divided_e)
-    #input('well?')
-    n3_kev = np_hist_n3[0]/(gain1 * gain2)*w*1E-3
-    n4_kev = np_hist_n4[0]/(gain1 * gain2)*w*1E-3
-
-    divided_e_prompt = divided_e/(gain1 * gain2)*w*1E-3
+    div_errs = np.array(div_errs)
 
     ### Begin plotting
     if root_style == True :
@@ -2993,44 +2933,44 @@ def energy_eff_study(gain_path):
     elif root_style == False :
         sns.set(color_codes=True)
         color = None
-
-    #f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
-    #ax1.hist(n_e, bins = 500, color=color, histtype='step')
-    #ax1.set_xlabel('Neutron Sum Q')
-    #ax3.hist(all_e, bins = 500, color=color, histtype='step')
-    #ax3.set_xlabel('All Sum Q')
-    ##print(len(divided_e), len(np_hist_n[1]))
-    ##ax2.scatter(divided_bins, divided_e)
-    #ax2.errorbar(divided_bins, divided_e, yerr=div_errs, fmt='o', capsize=0,
-    #        color=color)
-    #ax2.set_xlabel('Neutron Sum Q')
-    #ax2.set_ylabel('Efficiency')
-
     # 'Efficiency' plot individually
 
+    eff = np_hist_n[0] / np_hist_all[0]
+
+    eff[np_hist_all[0] == 0] = 0.0
+
+    print(eff[divided_bins_kev <= 250])
+    print(np_hist_n[0][divided_bins_kev <= 250])
+    print(divided_bins_kev[divided_bins_kev <= 250])
+
+    errs = eff * np.sqrt(1.0/np_hist_n[0] + 1.0/np_hist_all[0])
+    #errs = (np_hist_n[0]/np_hist_all[0]) * np.sqrt(1.0/np_hist_n[0] +
+    #        1.0/np_hist_all[0])
+
     h, (ax1) = plt.subplots(1, 1)
-    ax1.errorbar(divided_bins_kev, divided_e, yerr=div_errs, fmt='o', capsize=0,
+    ax1.errorbar(divided_bins_kev,
+            eff,
+            yerr=div_errs,
+            fmt='o',
+            color='k',
+            )
+    ax1.set_xlabel('Detected Energy [keV]', ha='right', x=1.0)
+    ax1.set_ylabel('Efficiency', ha='right', y=1.0)
+    ax1.set_xlim(0,250)
+    ax1.set_ylim(plt.ylim()[0], 1.25)
+    h.savefig('neutron_efficiency_energy.pdf')
+    plt.show()
+
+    h, (ax1) = plt.subplots(1, 1)
+    ax1.errorbar(divided_bins_kev, np_hist_n3[0], yerr=div_errs, fmt='o', capsize=0,
             color=color)
     #ax1.errorbar(divided_bins, divided_e, yerr=div_errs, fmt='o', capsize=0,
     #        color=color)
     #ax1.set_xlabel('Neutron Recoil Sum Q')
-    ax1.set_xlabel('Detected Energy (keV)')
-    ax1.set_ylabel('Efficiency')
+    ax1.set_xlabel('Detected Energy [keV]', ha='right', x=1.0)
+    ax1.set_ylabel('Efficiency', ha='right', y=1.0)
     #ax1.set_xlim(0,1E7)
     ax1.set_xlim(0,200)
-    #h.savefig('neutron_efficiency_energy.eps')
-    plt.show()
-
-    #h, (ax1) = plt.subplots(1, 1)
-    #ax1.errorbar(divided_bins_kev, np_hist_n3[0], yerr=div_errs, fmt='o', capsize=0,
-    #        color=color)
-    ##ax1.errorbar(divided_bins, divided_e, yerr=div_errs, fmt='o', capsize=0,
-    ##        color=color)
-    ##ax1.set_xlabel('Neutron Recoil Sum Q')
-    #ax1.set_xlabel('Detected Energy (keV)')
-    #ax1.set_ylabel('Efficiency')
-    ##ax1.set_xlim(0,1E7)
-    #ax1.set_xlim(0,200)
     #h.savefig('tpc3_neutron_efficiency_energy.eps')
     #plt.show()
 
@@ -3407,10 +3347,10 @@ def energy_study(datapath, simpath):
 
     # Selections in sim
     ch3_touschek_sels = (
-                (sim_detnbs == 3)
+                (pulse_widths > 3)
+                & (sim_detnbs == 3)
                 & (touschek==1)
-                & (pulse_widths > 3)
-                & (sim_pdgs > 10000)
+                #& (sim_pdgs > 10000)
                 & (sim_hitsides == 0)
                 & (sim_min_rets == 0)
                 & (sim_dQdx > 500)
@@ -3418,10 +3358,10 @@ def energy_study(datapath, simpath):
                 )
 
     ch4_touschek_sels = (
-                (sim_detnbs == 4)
+                (pulse_widths > 3)
+                & (sim_detnbs == 4)
                 & (touschek==1)
-                & (pulse_widths > 3)
-                & (sim_pdgs > 10000)
+                #& (sim_pdgs > 10000)
                 & (sim_hitsides == 0)
                 & (sim_min_rets == 0)
                 & (sim_dQdx > 500)
@@ -3429,10 +3369,10 @@ def energy_study(datapath, simpath):
                 )
 
     ch3_beamgas_sels = (
-                (sim_detnbs == 3)
+                (pulse_widths > 3)
+                & (sim_detnbs == 3)
                 & (beam_gas==1)
-                & (pulse_widths > 3)
-                & (sim_pdgs > 10000)
+                #& (sim_pdgs > 10000)
                 & (sim_hitsides == 0)
                 & (sim_min_rets == 0)
                 & (sim_dQdx > 500)
@@ -3440,10 +3380,10 @@ def energy_study(datapath, simpath):
                 )
 
     ch4_beamgas_sels = (
-                (sim_detnbs == 4)
+                (pulse_widths > 3)
+                & (sim_detnbs == 4)
                 & (beam_gas==1)
-                & (pulse_widths > 3)
-                & (sim_pdgs > 10000)
+                #& (sim_pdgs > 10000)
                 & (sim_hitsides == 0)
                 & (sim_min_rets == 0)
                 & (sim_dQdx > 500)
@@ -3469,59 +3409,10 @@ def energy_study(datapath, simpath):
     print('Npoints:', sim_npoints[ch4_v2_ratio > 1.0][0])
     print(np.min(sim_tots[ch4_v2_ratio > 1.0][0]))
 
-
-    ### Quick plots for other purposes
-    d = plt.figure()
-    ax0 = d.add_subplot(111)
-    ax0.scatter(sim_E[ch3_touschek_sels]/truth_KE[ch3_touschek_sels],
-            sim_E[ch3_touschek_sels], color='C0')
-    ax0.scatter(sim_E[ch4_touschek_sels]/truth_KE[ch4_touschek_sels],
-            sim_E[ch4_touschek_sels], color='C0')
-    ax0.scatter(sim_E[ch3_beamgas_sels]/truth_KE[ch3_beamgas_sels],
-            sim_E[ch3_beamgas_sels], color='C0')
-    ax0.scatter(sim_E[ch4_beamgas_sels]/truth_KE[ch4_beamgas_sels],
-            sim_E[ch4_beamgas_sels], color='C0')
-    ax0.set_xlabel('Reco/truth recoil energy', ha='right', x=1.0) 
-    ax0.set_ylabel('Reconstructed recoil energy [keV]', ha='right', y=1.0)
-    ax0.set_xlim(plt.xlim()[0], 1.50)
-    ax0.set_ylim(plt.ylim()[0], 1750.0)
-
-    e = plt.figure()
-    ax1 = e.add_subplot(111)
-    ax1.scatter(sim_E_v2[ch3_touschek_sels]/truth_KE[ch3_touschek_sels],
-            sim_E_v2[ch3_touschek_sels], color='C0')
-    ax1.scatter(sim_E_v2[ch4_touschek_sels]/truth_KE[ch4_touschek_sels],
-            sim_E_v2[ch4_touschek_sels], color='C0')
-    ax1.scatter(sim_E_v2[ch3_beamgas_sels]/truth_KE[ch3_beamgas_sels],
-            sim_E_v2[ch3_beamgas_sels], color='C0')
-    ax1.scatter(sim_E_v2[ch4_beamgas_sels]/truth_KE[ch4_beamgas_sels],
-            sim_E_v2[ch4_beamgas_sels], color='C0')
-    ax1.set_xlabel('Reco/truth recoil energy', ha='right', x=1.0) 
-    ax1.set_ylabel('Reconstructed recoil energy [keV]', ha='right', y=1.0)
-    ax1.set_xlim(plt.xlim()[0], 1.50)
-    ax1.set_ylim(plt.ylim()[0], 1750.0)
-
-    plt.show()
-
-    ### Debug
-    print('Printing number of events in Data, Touschek, and Beamgas in ch3, ch4')
-    if 'v3.1' not in datapath :
-        print(len(data_E[ch3_data_sels]) )
-        print(len(sim_E[ch3_touschek_sels]) )
-        print(len(sim_E[ch3_beamgas_sels]) )
-
-        print(len(data_E[ch4_data_sels]) )
-        print(len(sim_E[ch4_touschek_sels]) )
-        print(len(sim_E[ch4_beamgas_sels]) )
-
-    elif 'v3.1' in datapath :
-        print(len(ch3_data_E) )
-        print(len(sim_E[ch3_touschek_sels]) )
-        print(len(sim_E[ch3_beamgas_sels]) )
-
-        print(len(ch4_data_E) )
-        print(len(sim_E[ch4_touschek_sels]) )
-        print(len(sim_E[ch4_beamgas_sels]) )
+    # Print number of unweighted MC neutrons
+    print('Printing raw number of MC neutrons (unweighted) ... ')
+    print('Ch 3:', len(sim_E[ch3_beamgas_sels]), len(sim_E[ch3_touschek_sels]))
+    print('Ch 4:', len(sim_E[ch4_beamgas_sels]), len(sim_E[ch4_touschek_sels]))
 
     ### Define exponential function for fitting recoil energy spectra
 
@@ -3575,24 +3466,44 @@ def energy_study(datapath, simpath):
     subrun_times, subrun_BeamGas, subrun_Touschek, _ = calc_sim_weights(beast_datapath, simpath)
 
     # Normalizing [Touschek, Beamgas] weights by time and sim beam conditions
-    ch3_weights=[ 
-            np.array([1.0/(36000.0*9090.91)]*len(sim_E[ch3_touschek_sels])),
-            np.array([1.0/(36000.0*0.0097)]*len(sim_E[ch3_beamgas_sels])),
-            ]
 
-    ch3_weights[0] *= np.sum(subrun_Touschek*subrun_times)
-    ch3_weights[1] *= np.sum(subrun_BeamGas*subrun_times)
+    ch3_weighted_rate = [0,0]
+    ch4_weighted_rate = [0,0]
 
-    ch4_weights=[ 
-            np.array([1.0/(36000.0*9090.91)]*len(sim_E[ch4_touschek_sels])),
-            np.array([1.0/(36000.0*0.0097)]*len(sim_E[ch4_beamgas_sels])),
-            ]
+    ch3_weighted_rate[0] = ( (subrun_Touschek * len(sim_E[ch3_touschek_sels]) ) /
+                        (36000.0 * 9090.91) )
+    ch3_weighted_rate[1] = ( (subrun_BeamGas * len(sim_E[ch3_beamgas_sels]) ) /
+                        (36000.0 * 0.0097) )
 
-    ch4_weights[0] *= np.sum(subrun_Touschek*subrun_times)
-    ch4_weights[1] *= np.sum(subrun_BeamGas*subrun_times)
+    ch4_weighted_rate[0] = ( (subrun_Touschek * len(sim_E[ch4_touschek_sels]) ) /
+                        (36000.0 * 9090.91) )
+    ch4_weighted_rate[1] = ( (subrun_BeamGas * len(sim_E[ch4_beamgas_sels]) ) /
+                        (36000.0 * 0.0097) )
+
+    print(ch3_weighted_rate)
+    print(ch4_weighted_rate)
+
+    print('Printing results from reweighting MC ... ')
+    print('Ch. 3: BG : T:', (ch3_weighted_rate[1]*subrun_times).sum(),
+                            (ch3_weighted_rate[0]*subrun_times).sum())
+    print('Ch. 4: BG : T:', (ch4_weighted_rate[1]*subrun_times).sum(),
+                            (ch4_weighted_rate[0]*subrun_times).sum())
+    ch3_weights = [0,0]
+    ch3_weights[0] = [(ch3_weighted_rate[0]*subrun_times).sum()/len(sim_E[ch3_touschek_sels])]*len(sim_E[ch3_touschek_sels])
+    ch3_weights[1] = [(ch3_weighted_rate[1]*subrun_times).sum()/len(sim_E[ch3_beamgas_sels])]*len(sim_E[ch3_beamgas_sels])
+                  
+    ch4_weights = [0,0]
+    ch4_weights[0] = [(ch4_weighted_rate[0]*subrun_times).sum()/len(sim_E[ch4_touschek_sels])]*len(sim_E[ch4_touschek_sels])
+    ch4_weights[1] = [(ch4_weighted_rate[1]*subrun_times).sum()/len(sim_E[ch4_beamgas_sels])]*len(sim_E[ch4_beamgas_sels])
+
+    print(len(sim_E[ch3_touschek_sels]), len(sim_E[ch3_beamgas_sels]))
+    print(len(ch3_weights[0]), len(ch3_weights[1]))
+    print(len(sim_E[ch4_touschek_sels]), len(sim_E[ch4_beamgas_sels]))
+    print(len(ch4_weights[0]), len(ch4_weights[1]))
 
     (ch3_touschek_n, ch3_touschek_bins, ch3_touschek_patches)=plt.hist(sim_E[ch3_touschek_sels], 
-        bins=ch3_data_bins, range=[0, np.max(sim_E[ch3_touschek_sels])],
+        bins=ch3_data_bins,
+        range=[0, np.max(sim_E[ch3_touschek_sels])],
         weights=ch3_weights[0])
 
     ch3_touschek_bin_centers = 0.5 * (ch3_touschek_bins[:-1] + ch3_touschek_bins[1:])
@@ -3611,7 +3522,8 @@ def energy_study(datapath, simpath):
     print(ch3_touschek_pars, ch3_touschek_p_errs)
 
     (ch4_touschek_n, ch4_touschek_bins, ch4_touschek_patches)=plt.hist(sim_E[ch4_touschek_sels], 
-        bins=ch4_data_bins, range=[0, np.max(sim_E[ch4_touschek_sels])],
+        bins=ch4_data_bins,
+        range=[0, np.max(sim_E[ch4_touschek_sels])],
         weights=ch4_weights[0])
 
     ch4_touschek_bin_centers = 0.5 * (ch4_touschek_bins[:-1] + ch4_touschek_bins[1:])
@@ -3630,7 +3542,8 @@ def energy_study(datapath, simpath):
     print(ch4_touschek_pars, ch4_touschek_p_errs)
 
     (ch3_beamgas_n, ch3_beamgas_bins, ch3_beamgas_patches) = plt.hist(sim_E[ch3_beamgas_sels],
-        bins=ch3_data_bins, range=[0, np.max(sim_E[ch3_beamgas_sels])] ,
+        bins=ch3_data_bins,
+        range=[0, np.max(sim_E[ch3_beamgas_sels])] ,
         weights=ch3_weights[1])
 
     ch3_beamgas_errs = np.sqrt(ch3_beamgas_n)
@@ -3649,7 +3562,8 @@ def energy_study(datapath, simpath):
     print(ch3_beamgas_pars, ch3_beamgas_p_errs)
 
     (ch4_beamgas_n, ch4_beamgas_bins, ch4_beamgas_patches) = plt.hist(sim_E[ch4_beamgas_sels],
-        bins=ch4_data_bins, range=[0, np.max(sim_E[ch4_beamgas_sels])] ,
+        bins=ch4_data_bins,
+        range=[0, np.max(sim_E[ch4_beamgas_sels])] ,
         weights=ch4_weights[1])
 
     ch4_beamgas_errs = np.sqrt(ch4_beamgas_n)
@@ -3703,6 +3617,12 @@ def energy_study(datapath, simpath):
         ch4_data_pdf_y), ch4_parts) = ch4_data_chi2.draw(ch4_data_minu,
                                                     parts=True)
 
+    # Print number of recoils from weighted simulation
+    print('Printing number of recoils from weighted simulation ... ')
+    print('Ch 3: BG: T: ', ch3_beamgas_n.sum(), ch3_touschek_n.sum())
+    print('Ch 4: BG: T: ', ch4_beamgas_n.sum(), ch4_touschek_n.sum())
+    input('well?')
+
     ### Plots
     f = plt.figure()
     ax1 = f.add_subplot(111)
@@ -3715,7 +3635,7 @@ def energy_study(datapath, simpath):
 
     ax1.errorbar(ch3_data_bin_centers, ch3_data_n, yerr=np.sqrt(ch3_data_n), fmt='o', color='black',
             label='Experiment')
-    ax1.plot(ch3_data_pdf_x, ch3_data_pdf_y, color='r', lw=2)
+    ax1.plot(ch3_data_pdf_x, ch3_data_pdf_y, color='C0', lw=2)
     ax1.plot(ch3_touschek_pdf_x, ch3_touschek_pdf_y, color='C2', lw=2)
     ax1.plot(ch3_beamgas_pdf_x, ch3_beamgas_pdf_y, color='C2', lw=2)
     ax1.set_xlabel('Detected Energy [keV]', ha='right', x=1.0)
@@ -3738,7 +3658,7 @@ def energy_study(datapath, simpath):
 
     ax2.errorbar(ch4_data_bin_centers, ch4_data_n, yerr=np.sqrt(ch4_data_n), fmt='o', color='black',
             label='Experiment')
-    ax2.plot(ch4_data_pdf_x, ch4_data_pdf_y, color='r', lw=2)
+    ax2.plot(ch4_data_pdf_x, ch4_data_pdf_y, color='C0', lw=2)
     ax2.plot(ch4_touschek_pdf_x, ch4_touschek_pdf_y, color='C2', lw=2)
     ax2.plot(ch4_beamgas_pdf_x, ch4_beamgas_pdf_y, color='C2', lw=2)
     ax2.set_xlabel('Detected Energy [keV]', ha='right', x=1.0)
@@ -3856,13 +3776,13 @@ def gain_study(gain_path):
 
     f, (ax1, ax2) = plt.subplots(1, 2, sharex=True, sharey=True)
     ax1.scatter(t3t_ts, t3_etop, color='black', label='Top')
-    ax1.scatter(t3b_ts, t3_ebottom, color='blue', label='Bottom')
+    ax1.scatter(t3b_ts, t3_ebottom, label='Bottom')
     ax1.set_xlabel('Time (s)')
     ax1.set_ylabel('Sum Q')
     ax1.set_title('Alpha Sum Q vs Time in TPC 3')
     ax1.legend(loc='lower left')
     ax2.scatter(t4t_ts, t4_etop, color='black', label='Top')
-    ax2.scatter(t4b_ts, t4_ebottom, color='blue', label='Bottom')
+    ax2.scatter(t4b_ts, t4_ebottom, label='Bottom')
     ax2.set_xlabel('Time (s)')
     ax2.set_ylabel('Sum Q')
     ax2.set_title('Alpha Sum Q vs Time in TPC 4')
@@ -3995,23 +3915,23 @@ def gain_study(gain_path):
     #plt.title('Alpha Sum Q vs Time in Ch. 3 (profile)')
     #plt.legend(loc='best')
     cx1.set_ylim(0,5E7)
-    cx1.set_xlabel('Time (s)')
-    cx1.set_ylabel('Detected Charge (q)')
+    cx1.set_xlabel('Time [s]', ha='right', x=1.0)
+    cx1.set_ylabel('Detected Charge [q]', ha='right', y=1.0)
     #cx1.legend_.remove()
     h.savefig('tpc3_gainstability.pdf')
-    plt.show()
+    #plt.show()
 
-    h, (cx1) = plt.subplots(1, 1)
+    l, (cx1) = plt.subplots(1, 1)
     result_t4.plot.scatter(x='x', y='mean', yerr='sem', ax=cx1,
        color='black')
     result_b4.plot.scatter(x='x', y='mean', yerr='sem', ax=cx1)
     #bx2.set_title('Alpha Sum Q vs Time in TPC4 (profile)')
     #bx2.legend(loc='lower left')
     cx1.set_ylim(0,5E7)
-    cx1.set_xlabel('Time (s)')
-    cx1.set_ylabel('Detected Charge (q)')
+    cx1.set_xlabel('Time [s]', ha='right', x=1.0)
+    cx1.set_ylabel('Detected Charge [q]', ha='right', y=1.0)
     #cx1.legend_.remove()
-    h.savefig('tpc4_gainstability.pdf')
+    l.savefig('tpc4_gainstability.pdf')
     plt.show()
 
 def pid_study(datapath, simpath):
@@ -4398,7 +4318,6 @@ def compare_toushek(datapath, simpath):
     print('Printing total number of neutrons detected in data ... ')
     print('Ch 3:', (data_toushek[0] * data_toushek[1]).sum())
     print('Ch 4:', (data_toushek[2] * data_toushek[3]).sum())
-    input('well?')
 
 
     # Get rate vs beamsize from BEAST sim ntuples
@@ -4467,10 +4386,7 @@ def compare_toushek(datapath, simpath):
     ch3_data_chi2 = probfit.Chi2Regression(probfit.linear,
             x=ch3_weighted_xvals,
             y=(data_toushek[0]/exp_IPZ2),
-            #y=(data_toushek[0]+data_toushek[2]),
-            #error=(data_toushek[0]/(exp_IPZ2*np.sqrt(data_toushek[1])))
             error=np.sqrt((data_toushek[0]/exp_IPZ2)),
-            #error=(data_toushek[0]+data_toushek[2])/(np.sqrt(data_toushek[1]))
             )
     ch3_data_minu = iminuit.Minuit(ch3_data_chi2)
     ch3_data_minu.migrad()
@@ -4478,10 +4394,7 @@ def compare_toushek(datapath, simpath):
     ch4_data_chi2 = probfit.Chi2Regression(probfit.linear,
             x=ch4_weighted_xvals,
             y=(data_toushek[2]/exp_IPZ2),
-            #y=(data_toushek[0]+data_toushek[2]),
-            #error=(data_toushek[2]/(exp_IPZ2*np.sqrt(data_toushek[1])))
             error=(data_toushek[2]/exp_IPZ2)/np.sqrt(subrun_times)
-            #error=(data_toushek[0]+data_toushek[2])/(np.sqrt(data_toushek[1]))
             )
     ch4_data_minu = iminuit.Minuit(ch4_data_chi2)
     ch4_data_minu.migrad()
@@ -4489,10 +4402,7 @@ def compare_toushek(datapath, simpath):
     print('Calculating sensitivies for ch. 3 in weighted sim ...\n')
     ch3_weighted_sim_chi2 = probfit.Chi2Regression(probfit.linear,
             x=ch3_weighted_xvals,
-            #y=(weighted_rates),
             y=(ch3_weighted_rates)/exp_IPZ2,
-            #error=(weighted_rates)/(np.sqrt(sim_toushek[1]))
-            #error=(ch3_weighted_rates)/(exp_IPZ2*np.sqrt(ch3_weighted_rates))
             error=(ch3_weighted_rates)/exp_IPZ2/np.sqrt(subrun_times)
             )
     ch3_weighted_sim_minu = iminuit.Minuit(ch3_weighted_sim_chi2)
@@ -4505,10 +4415,7 @@ def compare_toushek(datapath, simpath):
     print('Calculating sensitivies for ch. 4 in weighted sim ...\n')
     ch4_weighted_sim_chi2 = probfit.Chi2Regression(probfit.linear,
             x=ch4_weighted_xvals,
-            #y=(weighted_rates),
             y=(ch4_weighted_rates)/exp_IPZ2,
-            #error=(weighted_rates)/(np.sqrt(sim_toushek[1]))
-            #error=(ch4_weighted_rates)/(exp_IPZ2*np.sqrt(ch4_weighted_rates))
             error=(ch4_weighted_rates)/exp_IPZ2/np.sqrt(subrun_times)
             )
     ch4_weighted_sim_minu = iminuit.Minuit(ch4_weighted_sim_chi2)
@@ -4518,10 +4425,7 @@ def compare_toushek(datapath, simpath):
     ch3_data_chi2 = probfit.Chi2Regression(probfit.linear,
             x=ch3_weighted_xvals,
             y=(data_toushek[0]/exp_IPZ2),
-            #y=(data_toushek[0]+data_toushek[2]),
-            #error=data_toushek[0]/(exp_IPZ2*np.sqrt(data_toushek[1]))
             error=(data_toushek[0]/exp_IPZ2)/np.sqrt(subrun_times)
-            #error=(data_toushek[0]+data_toushek[2])/(np.sqrt(data_toushek[1]))
             )
     ch3_data_minu = iminuit.Minuit(ch3_data_chi2)
     ch3_data_minu.migrad()
@@ -4530,10 +4434,7 @@ def compare_toushek(datapath, simpath):
     ch4_data_chi2 = probfit.Chi2Regression(probfit.linear,
             x=ch4_weighted_xvals,
             y=(data_toushek[2]/exp_IPZ2),
-            #y=(data_toushek[0]+data_toushek[2]),
-            #error=data_toushek[2]/(exp_IPZ2*np.sqrt(data_toushek[3]))
             error=(data_toushek[2]/exp_IPZ2)/np.sqrt(subrun_times)
-            #error=(data_toushek[0]+data_toushek[2])/(np.sqrt(data_toushek[1]))
             )
     ch4_data_minu = iminuit.Minuit(ch4_data_chi2)
     ch4_data_minu.migrad()
@@ -4543,16 +4444,13 @@ def compare_toushek(datapath, simpath):
     data_chi2 = probfit.Chi2Regression(probfit.linear,
             x=ch3_weighted_xvals,
             y=(data_toushek[0]+data_toushek[2])/exp_IPZ2,
-            #y=total_data_y,
-            #y=(data_toushek[0]+data_toushek[2]),
-            #error=(data_toushek[0]+data_toushek[2])/(exp_IPZ2*np.sqrt(data_toushek[1]+data_toushek[3]))
             error=(data_toushek[0]+data_toushek[2])/exp_IPZ2/np.sqrt(subrun_times)
-            #error=(data_toushek[0]+data_toushek[2])/(np.sqrt(data_toushek[1]))
             )
     data_minu = iminuit.Minuit(data_chi2)
     data_minu.migrad()
 
     total_weighted_rate = ch3_weighted_rates + ch4_weighted_rates
+
     print('Calculating combined senstivities in weighted sim ... \n')
     print('Calculating error for total weighted sim rate ... ')
 
@@ -4567,30 +4465,21 @@ def compare_toushek(datapath, simpath):
     sim_chi2 = probfit.Chi2Regression(probfit.linear,
             x=ch3_weighted_xvals,
             y=(total_weighted_rate)/exp_IPZ2,
-            #y=(sim_toushek[0]+sim_toushek[2]),
-            #error=(sim_toushek[0]+sim_toushek[2])/(np.sqrt(sim_toushek[1]))
-            #error=(total_weighted_rate)/(exp_IPZ2*np.sqrt(total_weighted_rate))
             error=total_weighted_rate/exp_IPZ2/np.sqrt(subrun_times)
             )
     sim_minu = iminuit.Minuit(sim_chi2)
     sim_minu.migrad()
 
-    #weighted_rates = ch3_weighted_rates + ch4_weighted_rates
-
-    #weighted_sim_chi2 = probfit.Chi2Regression(probfit.linear,
-    #        x=ch3_weighted_xvals,
-    #        #y=(weighted_rates),
-    #        y=(weighted_rates)/exp_IPZ2,
-    #        #error=(weighted_rates)/(np.sqrt(sim_toushek[1]))
-    #        error=(weighted_rates)/(exp_IPZ2*np.sqrt(sim_toushek[1]))
-    #        )
-    #weighted_sim_minu = iminuit.Minuit(weighted_sim_chi2)
-    #weighted_sim_minu.migrad()
+    print('Printing rates and subrun times in weighted MC ... ')
+    print('Ch. 3 rates:', ch3_weighted_rates)
+    print('Ch. 4 rates:', ch4_weighted_rates)
+    print('Subrun times:', subrun_times)
 
     print('Printing number of neutrons of each type in MC ... ')
-    print('Ch. 3:', (ch3_weighted_rates*subrun_times).sum() )
-    print('Ch. 4:', (ch4_weighted_rates*subrun_times).sum() )
-    input('well?')
+    print('Ch. 3: BG: T:', (ch3_weights[1]*subrun_times).sum(),
+                           (ch3_weights[0]*subrun_times).sum() )
+    print('Ch. 4: BG: T:', (ch4_weights[1]*subrun_times).sum(),
+                           (ch4_weights[0]*subrun_times).sum() )
 
     g = plt.figure()
     ax0 = g.add_subplot(111)
@@ -4610,25 +4499,12 @@ def compare_toushek(datapath, simpath):
     ax0.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
     ax0.ticklabel_format(style='sci', axis='x', scilimits=(0, 0))
 
+    print('Printing amount of neutrons from reweighted MC ... ')
+    print('Ch. 3: ', ch3_weighted_rates * subrun_times)
+    print('Ch. 4: ', ch4_weighted_rates * subrun_times)
+
     f = plt.figure()
     ax1 = f.add_subplot(111)
-
-
-    #ax1.errorbar(
-    #            ch3_weighted_xvals,
-    #            (data_toushek[0]+data_toushek[2])/exp_IPZ2,
-    #            yerr=np.sqrt((data_toushek[0]+data_toushek[2])/exp_IPZ2/np.sqrt(subrun_times)),
-    #            fmt='o',
-    #            color='C0',
-    #            label='Total Exp.')
-
-    #ax1.errorbar(
-    #            ch3_weighted_xvals,
-    #            (total_weighted_rate)/exp_IPZ2,
-    #            yerr=total_weighted_rate/exp_IPZ2/np.sqrt(subrun_times),
-    #            fmt='o',
-    #            color='C1',
-    #            label='Total MC')
 
     ax1.errorbar(
                 ch3_weighted_xvals,
@@ -4669,20 +4545,6 @@ def compare_toushek(datapath, simpath):
                 mec='C1',
                 mfc='none',
                 label='Ch. 4 MC')
-
-    #((data_x, data_y), _, (data_total_pdf_x, data_total_pdf_y), _) = (
-    #        data_chi2.draw(data_minu, print_par=False, no_plot=True) )
-    #parameters = data_minu.values
-    #data_total_pdf_y[-1] = parameters['c']
-    #data_total_pdf_x[-1] = 0.0
-    #ax1.plot(data_total_pdf_x, data_total_pdf_y, lw=2)#, label='Total Exp. Data')
-
-    #((sim_x, sim_y), _, (sim_total_pdf_x, sim_total_pdf_y), _) = (
-    #        sim_chi2.draw(sim_minu, print_par=False, no_plot=True))
-    #parameters = sim_minu.values
-    #sim_total_pdf_y[-1] = parameters['c']
-    #sim_total_pdf_x[-1] = 0.0
-    #ax1.plot(sim_total_pdf_x, sim_total_pdf_y, lw=2)#, label='Total Wtd. MC')
 
     ((ch3_weighted_sim_x, ch3_weighted_sim_y), _, (ch3_sim_pdf_x, ch3_sim_pdf_y), _) = (
             ch3_weighted_sim_chi2.draw(ch3_weighted_sim_minu, print_par=False,
@@ -4729,78 +4591,6 @@ def compare_toushek(datapath, simpath):
     f.savefig('tpc_heuristic_bg_vs_t.pdf')
 
     plt.show()
-
-    '''
-    f = plt.figure()
-    ax1 = f.add_subplot(111)
-    #data_toushek[4].draw(data_toushek[5], print_par=False)
-    #sim_toushek[4].draw(sim_toushek[5], print_par=False)
-    data_chi2.draw(data_minu, print_par=False)
-    sim_chi2.draw(sim_minu, print_par=False)
-    weighted_sim_chi2.draw(weighted_sim_minu, print_par=False)
-
-    ax1.errorbar(weighted_xvals, 
-            #(data_toushek[0]+data_toushek[2]),
-            (data_toushek[0]+data_toushek[2])/exp_IPZ2,
-            #xerr=data_toushek[2],
-            #yerr=(data_toushek[0]+data_toushek[2])/(np.sqrt(data_toushek[1])),
-            yerr=(data_toushek[0]+data_toushek[2])/(exp_IPZ2*np.sqrt(data_toushek[1])),
-            fmt='o', color='black', label='Experiment')
-    ax1.errorbar(weighted_xvals, 
-            #(sim_toushek[0]+sim_toushek[2]),
-            (sim_toushek[0]+sim_toushek[2])/exp_IPZ2,
-            #xerr=data_toushek[2],
-            yerr=(sim_toushek[0]+sim_toushek[2])/(exp_IPZ2*np.sqrt(sim_toushek[1])),
-            #yerr=((sim_toushek[0]+sim_toushek[2])/(np.sqrt(sim_toushek[1]))),
-            fmt='o', color='C0', label='Simulation')
-    #ax1.errorbar(TouschekPlot_vals[0], 
-    #        weighted_rates,
-    #        #xerr=data_toushek[2],
-    #        #yerr=weighted_rates, 
-    #        fmt='o', color='C2', label='Simulation')
-    ax1.errorbar(weighted_xvals,
-            weighted_rates/exp_IPZ2,
-            yerr=weighted_rates/(exp_IPZ2*np.sqrt(data_toushek[1])),
-            #yerr=weighted_rates/(np.sqrt(data_toushek[1])),
-            color='C2', fmt='o', label='Self Weighted')
-
-    ax1.set_xlabel('$\\frac{I}{P\sigma_y}$ [$mA$ Pa$^{-1}$ $\mu$m$^{-1}$]\t\t',
-                   ha='right', x=1.0)
-    ax1.set_ylabel('$\\frac{Rate}{IPZ_{eff}^{2}}$', ha='right', y=1.0)
-    #ax1.set_xlim([0.0,1.0E7])
-    #ax1.set_ylim([0.0,80.0])
-    ax1.ticklabel_format(style='sci', axis='x', scilimits=(0,0), useMathText=True)
-    xfmt = mpl.ticker.ScalarFormatter(useMathText=True)
-    ax1.xaxis.set_major_formatter(xfmt)
-    ax1.yaxis.set_major_formatter(xfmt)
-    ax1.legend(loc='best')
-    #f.savefig('TPC_peter_toushek_measurement_simcuts_sim_and_data.pdf')
-    #f.savefig('TPC_peter_touschek_dataVSmc_igal_weighting.pdf')
-
-    print('Printing y vals and ratios for data and Igal-weighted sim ... ')
-    print((data_toushek[0]+data_toushek[2])/exp_IPZ2)
-    print((sim_toushek[0]+sim_toushek[2])/exp_IPZ2)
-
-    print(((data_toushek[0]+data_toushek[2])) /
-             ((sim_toushek[0]+sim_toushek[2])) )
-    
-    g = plt.figure()
-    ax2 = g.add_subplot(111)
-    ax2.errorbar(weighted_xvals,
-            data_toushek[0]+data_toushek[2],
-            yerr=(data_toushek[0]+data_toushek[2])/(np.sqrt(data_toushek[1])),
-            color='k', fmt='o', label='Experiment')
-    ax2.scatter(weighted_xvals,
-            sim_toushek[0]+sim_toushek[2],
-            color='C0', label='Simulation')
-    ax2.scatter(weighted_xvals,
-            weighted_rates,
-            color='C2', label='Self Weighted')
-    '''
-
-
-    plt.show()
-
 
 
 
@@ -4914,6 +4704,7 @@ def compare_angles(datapath, simpath):
 
     plt.xlabel('Ch. 3 $\\theta$ [$^\circ$]', ha='right', x=1.0)
     plt.ylabel('Events per bin', ha='right', y=1.0)
+    plt.ylim(plt.ylim()[0], 150)
     plt.legend(loc='best')
     plt.savefig('ch3_theta_histoPDF_fit.pdf')
     plt.show()
@@ -5000,6 +4791,7 @@ def compare_angles(datapath, simpath):
 
     plt.xlabel('Ch. 4 $\\theta$ [$^\circ$]', ha='right', x=1.0)
     plt.ylabel('Events per bin', ha='right', y=1.0)
+    plt.ylim(plt.ylim()[0], 150)
     plt.legend(loc='best')
     plt.savefig('ch4_theta_histoPDF_fit.pdf')
     plt.show()
@@ -5085,6 +4877,7 @@ def compare_angles(datapath, simpath):
 
     plt.xlabel('Ch. 3 $\\phi$ [$^\circ$]', ha='right', x=1.0)
     plt.ylabel('Events per bin', ha='right', y=1.0)
+    plt.ylim(plt.ylim()[0], 150)
     plt.legend(loc='best')
     plt.savefig('ch3_phi_histoPDF_fit.pdf')
     plt.show()
@@ -5186,6 +4979,7 @@ def compare_angles(datapath, simpath):
     ax1.set_xlabel('Ch. 3 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
     ax1.set_ylabel('Events per bin',ha='right',y=1.0)
     ax1.set_xlim(-10,190)
+    ax1.set_ylim(plt.xlim()[0],130)
     ax1.legend(loc='best')
     f.savefig('TPC3_theta_datavsmc.pdf')
 
@@ -5206,6 +5000,7 @@ def compare_angles(datapath, simpath):
     bx1.set_xlabel('Ch. 4 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
     bx1.set_ylabel('Events per bin',ha='right',y=1.0)
     bx1.set_xlim(-10,190)
+    bx1.set_ylim(plt.xlim()[0],130)
     bx1.legend(loc='best')
     g.savefig('TPC4_theta_datavsmc.pdf')
 
@@ -5224,6 +5019,7 @@ def compare_angles(datapath, simpath):
     cx1.set_xlabel('Ch. 3 $\phi$ [$^{\circ}$]',ha='right',x=1.0)
     cx1.set_ylabel('Events per bin',ha='right',y=1.0)
     cx1.set_xlim(-100,100)
+    cx1.set_ylim(plt.xlim()[0],130)
     cx1.legend(loc='best')
     h.savefig('TPC3_phi_datavsmc.pdf')
 
@@ -5243,6 +5039,7 @@ def compare_angles(datapath, simpath):
     dx1.set_ylabel('Events per bin',ha='right',y=1.0)
     dx1.set_xlim(-100,100)
     dx1.legend(loc='best')
+    dx1.set_ylim(plt.xlim()[0],130)
     k.savefig('TPC4_phi_datavsmc.pdf')
 
     weights=[ 
@@ -5280,6 +5077,7 @@ def compare_angles(datapath, simpath):
     fx1.set_xlabel('Ch. 3 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
     fx1.set_ylabel('Events per bin',ha='right',y=1.0)
     fx1.set_xlim(-10,190)
+    fx1.set_ylim(plt.xlim()[0],130)
     fx1.legend(loc='best')
     m.savefig('TPC3_theta_not_bpdirectvsmc.pdf')
 
@@ -5477,6 +5275,7 @@ def compare_angles(datapath, simpath):
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
     weights[1] *= np.sum(subrun_BeamGas*subrun_times)
+
     (n, bins, patches) = plt.hist(data_angles[5], bins=theta_bins,
             range=[0,180])
     m = plt.figure()
@@ -7600,7 +7399,7 @@ def main():
     inpath = str(home) + '/BEAST/data/TPC/tpc_toushekrun/2016-05-29/'
 
     compare_toushek(v31_datapath, v54_simpath)
-    #compare_angles(v31_datapath, v52_simpath)
+    compare_angles(v31_datapath, v52_simpath)
     #rate_vs_beamsize(datapath)
     #sim_rate_vs_beamsize(simpath)
 
@@ -7608,9 +7407,9 @@ def main():
     #neutron_study_sim(v4_simpath)
     #energy_study(inpath, v52_simpath)
     energy_study(v31_datapath, v52_simpath)
-    #gain_study(inpath)
+    gain_study(inpath)
     #energy_eff_study(inpath)
-    #pid_study(inpath, simpath)
+    pid_study(inpath, simpath)
 
     #event_inspection(inpath)
     #event_inspection(v52_simpath)
