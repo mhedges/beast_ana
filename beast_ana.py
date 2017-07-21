@@ -2967,19 +2967,19 @@ def energy_eff_study(gain_path):
     div_errs = np_hist_n[0]/np_hist_all[0] * np.sqrt(1.0/np_hist_n[0] +
             1.0/np_hist_all[0])
 
-    print(n_phi)
-    print(all_phi)
-    input('well?')
-
     all_folded_thetas = np.zeros_like(all_theta)
     all_folded_thetas[:] = all_theta
     all_folded_phis = np.zeros_like(all_phi)
-    all_folded_thetas[:] = all_theta
+    all_folded_phis[:] = all_phi
 
     n_folded_thetas = np.zeros_like(n_theta)
     n_folded_thetas[:] = n_theta
     n_folded_phis = np.zeros_like(n_phi)
     n_folded_phis[:] = n_phi
+
+    print(n_folded_phis)
+    print(all_folded_phis)
+    input('well?')
 
     all_folded_thetas[( (all_folded_phis < -90) )] *= -1
     all_folded_thetas[( (all_folded_phis < -90) )] += 180
