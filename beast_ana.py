@@ -35,9 +35,9 @@ root_style = True
 #style = atlas_style_mpl.style_mpl()
 #plt.style.use(style)
 
-import seaborn as sns
-sns.set_style("whitegrid", {'axes.grid' : False})
-sns.set_palette("cubehelix", 8)
+#import seaborn as sns
+#sns.set_style("whitegrid", {'axes.grid' : False})
+#sns.set_palette("cubehelix", 8)
 
 
 if root_style == True :
@@ -1103,7 +1103,7 @@ def neutron_study(datapath):
     print('\nOutside Beampipe:')
     print('TPC3:', len(tpc3theta_array_notbp))
     print('TPC4:', len(tpc4theta_array_notbp))
-    input('well?')
+    #input('well?')
 
     ### Begin plotting
     if root_style == True :
@@ -2977,10 +2977,6 @@ def energy_eff_study(gain_path):
     n_folded_phis = np.zeros_like(n_phi)
     n_folded_phis[:] = n_phi
 
-    print(n_folded_phis)
-    print(all_folded_phis)
-    input('well?')
-
     all_folded_thetas[( (all_folded_phis < -90) )] *= -1
     all_folded_thetas[( (all_folded_phis < -90) )] += 180
 
@@ -3053,15 +3049,19 @@ def energy_eff_study(gain_path):
             color=color)
     ax2.set_xlabel('$\\theta$ [$^{\circ}$]', ha='right', x=1.0)
     ax2.set_ylabel('Efficiency', ha='right', y=1.0)
+    ax2.set_ylim(0.0, plt.ylim()[1])
+    ax2.set_xticks(x[::2])
+    g.savefig('detection_efficiency_vs_theta.pdf')
 
-    f, (ax2) = plt.subplots(1,1)
+    f, (ax3) = plt.subplots(1,1)
     x = np.linspace(-90.0, 90.0, 9)
-    ax2.errorbar(x, div_phi, yerr=div_phi_errs, fmt='o', capsize=0,
+    ax3.errorbar(x, div_phi, yerr=div_phi_errs, fmt='o', capsize=0,
             color=color)
-    ax2.set_xlabel('$\phi$ [$^{\circ}$]', ha='right', x=1.0)
-    ax2.set_ylabel('Efficiency', ha='right', y=1.0)
-
-    plt.show()
+    ax3.set_xlabel('$\phi$ [$^{\circ}$]', ha='right', x=1.0)
+    ax3.set_ylabel('Efficiency', ha='right', y=1.0)
+    ax3.set_ylim(0.0, plt.ylim()[1])
+    ax3.set_xticks(x[::2])
+    f.savefig('detection_efficiency_vs_phi.pdf')
 
     plt.show()
 
@@ -3602,7 +3602,7 @@ def energy_study(datapath, simpath):
     print('Printing number of recoils from weighted simulation ... ')
     print('Ch 3: BG: T: ', ch3_beamgas_n.sum(), ch3_touschek_n.sum())
     print('Ch 4: BG: T: ', ch4_beamgas_n.sum(), ch4_touschek_n.sum())
-    input('well?')
+    #input('well?')
 
     ### Plots
     f = plt.figure()
@@ -3612,13 +3612,13 @@ def energy_study(datapath, simpath):
             weights=ch3_bkg_weights,
             range=[0,np.max(ch3_data_E)],
             label=['Touschek MC','Beam Gas MC'],
-            stacked=True, color=['C1','C2'])
+            stacked=True, color=['C0','C1'])
 
     ax1.errorbar(ch3_data_bin_centers, ch3_data_n, yerr=np.sqrt(ch3_data_n), fmt='o', color='black',
             label='Experiment')
-    ax1.plot(ch3_data_pdf_x, ch3_data_pdf_y, color='C0', lw=2)
-    ax1.plot(ch3_touschek_pdf_x, ch3_touschek_pdf_y, color='C3', lw=2)
-    ax1.plot(ch3_beamgas_pdf_x, ch3_beamgas_pdf_y, color='C3', lw=2)
+    ax1.plot(ch3_data_pdf_x, ch3_data_pdf_y, color='r', lw=2)
+    ax1.plot(ch3_touschek_pdf_x, ch3_touschek_pdf_y, color='C2', lw=2)
+    ax1.plot(ch3_beamgas_pdf_x, ch3_beamgas_pdf_y, color='C2', lw=2)
     ax1.set_xlabel('Detected Energy [keV]', ha='right', x=1.0)
     ax1.set_ylabel('Events per bin', ha='right', y=1.0)
     ax1.set_ylim(1E-1,1E4)
@@ -3635,13 +3635,13 @@ def energy_study(datapath, simpath):
             weights=ch4_bkg_weights,
             range=[0,np.max(ch4_data_E)],
             label=['Touschek MC','Beam Gas MC'],
-            stacked=True, color=['C1','C2'])
+            stacked=True, color=['C0','C1'])
 
     ax2.errorbar(ch4_data_bin_centers, ch4_data_n, yerr=np.sqrt(ch4_data_n), fmt='o', color='black',
             label='Experiment')
-    ax2.plot(ch4_data_pdf_x, ch4_data_pdf_y, color='C0', lw=2)
-    ax2.plot(ch4_touschek_pdf_x, ch4_touschek_pdf_y, color='C3', lw=2)
-    ax2.plot(ch4_beamgas_pdf_x, ch4_beamgas_pdf_y, color='C3', lw=2)
+    ax2.plot(ch4_data_pdf_x, ch4_data_pdf_y, color='r', lw=2)
+    ax2.plot(ch4_touschek_pdf_x, ch4_touschek_pdf_y, color='C2', lw=2)
+    ax2.plot(ch4_beamgas_pdf_x, ch4_beamgas_pdf_y, color='C2', lw=2)
     ax2.set_xlabel('Detected Energy [keV]', ha='right', x=1.0)
     ax2.set_ylabel('Events per bin', ha='right', y=1.0)
     ax2.set_ylim(1E-1,1E4)
@@ -4519,7 +4519,7 @@ def compare_toushek(datapath, simpath):
                 yerr=(data_toushek[2]/exp_IPZ2)/np.sqrt(subrun_times),
                 fmt='o',
                 ms=5.8,
-                color='C2',
+                color='C1',
                 label='TPC 4 Exp')
 
     ax1.errorbar(
@@ -4528,7 +4528,7 @@ def compare_toushek(datapath, simpath):
                 yerr=ch4_weighted_rates/exp_IPZ2/np.sqrt(subrun_times),
                 fmt='^',
                 ms=6.2,
-                color='C2',
+                color='C1',
                 mew=1.0,
                 mfc='none',
                 label='TPC 4 MC')
@@ -4666,12 +4666,12 @@ def compare_angles(datapath, simpath):
 
     plt.hist(thetas,
             weights=sum_hists*sum_fitted_norm/sum_norm,
-            color='C4', bins=data_edges, label='MC Fitted Sum')
+            color='C2', bins=data_edges, label='MC Fitted Sum')
 
     # Plot beam gas distribution obtained from histogram PDF
     plt.hist(thetas,
             weights=ch3Theta_BeamGas_hist[0]*parameters['BeamGasN']/BeamGas_norm,
-            color='C2', bins=data_edges, label='MC Beam Gas')
+            color='C1', bins=data_edges, label='MC Beam Gas')
 
     # Plot Touschek distribution obtained from histogram PDF
     plt.hist(thetas,
@@ -4753,12 +4753,12 @@ def compare_angles(datapath, simpath):
 
     plt.hist(thetas,
             weights=sum_hists*sum_fitted_norm/sum_norm,
-            color='C4', bins=data_edges, label='MC Fitted Sum')
+            color='C2', bins=data_edges, label='MC Fitted Sum')
 
     # Plot beam gas distribution obtained from histogram PDF
     plt.hist(thetas,
             weights=ch4Theta_BeamGas_hist[0]*parameters['BeamGasN']/BeamGas_norm,
-            color='C2', bins=data_edges, label='MC Beam Gas')
+            color='C1', bins=data_edges, label='MC Beam Gas')
 
     # Plot Touschek distribution obtained from histogram PDF
     plt.hist(thetas,
@@ -4847,7 +4847,7 @@ def compare_angles(datapath, simpath):
 
     plt.hist(phis,
             weights=sum_hists*sum_fitted_norm/sum_norm,
-            color='C4', bins=data_edges, label='MC Fitted Sum')
+            color='C2', bins=data_edges, label='MC Fitted Sum')
 
     # Plot Touschek distribution obtained from histogram PDF
     plt.hist(phis,
@@ -4857,7 +4857,7 @@ def compare_angles(datapath, simpath):
     # Plot beam gas distribution obtained from histogram PDF
     plt.hist(phis,
             weights=ch3Phi_BeamGas_hist[0]*parameters['BeamGasN']/BeamGas_norm,
-            color='C2', bins=data_edges, label='MC Beam Gas')
+            color='C1', bins=data_edges, label='MC Beam Gas')
 
 
     plt.errorbar(data_x, data_y, fmt='o', yerr=np.sqrt(data_y), color='k')
@@ -4926,12 +4926,12 @@ def compare_angles(datapath, simpath):
 
     plt.hist(phis,
             weights=sum_hists*sum_fitted_norm/sum_norm,
-            color='C4', bins=data_edges, label='MC Fitted Sum')
+            color='C2', bins=data_edges, label='MC Fitted Sum')
 
     # Plot beam gas distribution obtained from histogram PDF
     plt.hist(phis,
             weights=ch4Phi_BeamGas_hist[0]*parameters['BeamGasN']/BeamGas_norm,
-            color='C2', bins=data_edges, label='MC Beam Gas')
+            color='C1', bins=data_edges, label='MC Beam Gas')
 
     # Plot Touschek distribution obtained from histogram PDF
     plt.hist(phis,
@@ -5141,7 +5141,7 @@ def compare_angles(datapath, simpath):
 
     print(subrun_Touschek * subrun_times)
     print(subrun_BeamGas * subrun_times)
-    input('well?')
+    #input('well?')
 
 
     (n, bins, patches) = plt.hist(data_angles[0], bins=theta_bins,
@@ -5150,7 +5150,7 @@ def compare_angles(datapath, simpath):
     ax1 = f.add_subplot(111)
     ax1.hist(sim_angles[8], bins=theta_bins, range=[0,180], stacked=True,
             label=['Touschek MC','Beam Gas MC'],
-            color=['C1', 'C2'],
+            color=['C0', 'C1'],
             weights=weights, )
     ax1.errorbar(thetas+10, n, yerr=np.sqrt(n),
             color='black', fmt='o',label='Experiment')
@@ -5179,7 +5179,7 @@ def compare_angles(datapath, simpath):
     #        range=[0,180])
     bx1.hist(sim_angles[9], bins=theta_bins, range=[0,180], stacked=True,
             label=['Touschek MC','Beam Gas MC'],
-            color=['C1', 'C2'],
+            color=['C0', 'C1'],
             weights=weights)
     bx1.errorbar(thetas+10, n, yerr=np.sqrt(n), color='black',
             fmt='o', label='Experiment')
@@ -5206,7 +5206,7 @@ def compare_angles(datapath, simpath):
     #        label='Sim', range=[-90,90])
     cx1.hist(sim_angles[10], bins=phi_bins, range=[-90,90], stacked=True,
             label=['Touschek MC','Beam Gas MC'],
-            color=['C1', 'C2'],
+            color=['C0', 'C1'],
             weights=weights)
     cx1.errorbar(phis+10, n, yerr=np.sqrt(n), color='black',
             fmt='o', label='Experiment')
@@ -5234,7 +5234,7 @@ def compare_angles(datapath, simpath):
     #        label='Sim', range=[-90,90])
     dx1.hist(sim_angles[11], bins=phi_bins, range=[-90,90], stacked=True,
             label=['Touschek MC','Beam Gas MC'],
-            color=['C1', 'C2'],
+            color=['C0', 'C1'],
             weights=weights)
     dx1.errorbar(phis+10, n, yerr=np.sqrt(n), color='black',
             fmt='o', label='Experiment')
@@ -5259,7 +5259,7 @@ def compare_angles(datapath, simpath):
     ex1 = l.add_subplot(111)
     ex1.hist(sim_angles[12], bins=theta_bins, range=[0,180], stacked=True,
             label=['Touschek MC', 'Beam Gas MC'],
-            color=['C1', 'C2'],
+            color=['C0', 'C1'],
             weights=weights)
     ex1.errorbar(thetas+10,n,yerr=np.sqrt(n),color='black',
             fmt='o',label='Experiment')
@@ -5283,7 +5283,7 @@ def compare_angles(datapath, simpath):
     fx1 = m.add_subplot(111)
     fx1.hist(sim_angles[13], bins=theta_bins, range=[0,180], stacked=True,
             label=['Touschek MC', 'Beam Gas MC'],
-            color=['C1', 'C2'],
+            color=['C0', 'C1'],
             weights=weights)
     fx1.errorbar(thetas+10,n,yerr=np.sqrt(n),color='black',
            fmt='o',label='Experiment')
@@ -5306,7 +5306,7 @@ def compare_angles(datapath, simpath):
     gx1 = o.add_subplot(111)
     gx1.hist(sim_angles[14], bins=theta_bins, range=[0,180], stacked=True,
             label=['Touschek MC', 'Beam Gas MC'],
-            color=['C1', 'C2'],
+            color=['C0', 'C1'],
             weights=weights)
     gx1.errorbar(thetas+10,n,yerr=np.sqrt(n),color='black',
            fmt='o',label='Experiment')
@@ -5329,7 +5329,7 @@ def compare_angles(datapath, simpath):
     hx1 = p.add_subplot(111)
     hx1.hist(sim_angles[15], bins=theta_bins, range=[0,180], stacked=True,
             label=['Touschek MC', 'Beam Gas MC'],
-            color=['C1', 'C2'],
+            color=['C0', 'C1'],
             weights=weights)
     hx1.errorbar(thetas+10,n,yerr=np.sqrt(n),color='black',
             fmt='o',label='Experiment')
@@ -6499,13 +6499,13 @@ def cut_study(simpath, datapath):
     #ax5.scatter(dQdx[sig_min_rets_cut], npoints[sig_min_rets_cut],
     #            label='MC Nuclear Recoils',color='k', facecolor='none')
     ax5.scatter(dQdx[bak_min_rets_cut], npoints[bak_min_rets_cut],
-                label='MC Background', color='C3')
+                label='MC Background', color='C1')
     ax5.scatter(dQdx[( (hitside==0) & (pdg==1000020040.0) & (dQdx>500.0) )],
                 npoints[( (hitside==0) & (pdg==1000020040.0) & (dQdx>500.0) )],
-                label='MC He Recoils', color='C4')
+                label='MC He Recoils', color='C2')
     ax5.scatter(dQdx[( (hitside==0) & (pdg>1000020040.0) & (dQdx>500.0) )], 
                 npoints[( (hitside==0) & (pdg>1000020040.0) & (dQdx>500.0) )],
-                label='MC C/O Recoils', color='C2')
+                label='MC C/O Recoils', color='C0')
     ax5.scatter(data_dQdx[data_npoints_cut], data_npoints[data_npoints_cut],
                 label='Experiment', color='k', facecolor='none', s=8.8)
     ax5.set_xlabel('dQ/dx [charge/$\mu$m]', ha='right', x=1.0)
@@ -6558,7 +6558,7 @@ def cut_study(simpath, datapath):
     ax7 = o.add_subplot(111)
     ax7.scatter(tlengths[( (sig_npoints_cut) & (pdg == 1000020040.0) )],
                 sumQ[( (sig_npoints_cut) & (pdg == 1000020040.0) )],
-                label='MC He Recoils', color='C2' )
+                label='MC He Recoils', color='C1' )
 
     ax7.scatter(tlengths[( (sig_npoints_cut) & (pdg > 1000020040.0) )],
                 sumQ[( (sig_npoints_cut) & (pdg > 1000020040.0) )],
@@ -6566,7 +6566,7 @@ def cut_study(simpath, datapath):
 
     ax7.scatter(tlengths[( (bak_npoints_cut) & (pdg < 10000) )],
                 sumQ[( (bak_npoints_cut) & (pdg < 10000) )],
-                label='MC Protons', color='C5')
+                label='MC Protons', color='C2')
     ax7.scatter(data_tlengths[( (data_npoints_cut) )],
                 data_sumQ[( (data_npoints_cut) )],
                 facecolor='none', label='Experiment', color='k', s=8.8)
@@ -6586,7 +6586,7 @@ def cut_study(simpath, datapath):
     ax7 = o.add_subplot(111)
     ax7.scatter(tlengths[( (sig_npoints_cut) & (pdg == 1000020040.0) )],
                 sumQ[( (sig_npoints_cut) & (pdg == 1000020040.0) )],
-                label='MC He Recoils', color='C2' )
+                label='MC He Recoils', color='C1' )
 
     ax7.scatter(tlengths[( (sig_npoints_cut) & (pdg > 1000020040.0) )],
                 sumQ[( (sig_npoints_cut) & (pdg > 1000020040.0) )],
@@ -6594,10 +6594,14 @@ def cut_study(simpath, datapath):
 
     ax7.scatter(tlengths[( (bak_npoints_cut) & (pdg < 10000) )],
                 sumQ[( (bak_npoints_cut) & (pdg < 10000) )],
-                label='MC Protons', color='C5')
+                label='MC Protons', color='C2')
     ax7.scatter(data_tlengths[( (data_npoints_cut) )],
                 data_sumQ[( (data_npoints_cut) )],
                 facecolor='none', label='Experiment', color='k', s=8.8)
+
+    from matplotlib.ticker import ScalarFormatter
+    ax7.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+    ax7.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
 
     ax7.set_xlabel('Track Length [$\mu$m]', ha='right', x=1.0)
     ax7.set_xlim(plt.xlim()[0], 15000)
@@ -7417,15 +7421,13 @@ def main():
 
     #compare_toushek(v31_datapath, v54_simpath)
     #compare_angles(v31_datapath, v52_simpath)
-    #rate_vs_beamsize(datapath)
-    #sim_rate_vs_beamsize(simpath)
 
     #neutron_study_raw(inpath)
     #neutron_study_sim(v4_simpath)
     #energy_study(inpath, v52_simpath)
     #energy_study(v31_datapath, v52_simpath)
     #gain_study(inpath)
-    energy_eff_study(inpath)
+    #energy_eff_study(inpath)
     #pid_study(inpath, v50_simpath)
 
     #event_inspection(inpath)
@@ -7433,7 +7435,7 @@ def main():
 
     #cut_study_data(inpath) 
     #fit_study(v52_simpath)
-    #cut_study(v52_simpath, inpath)
+    cut_study(v52_simpath, inpath)
 
     #energy_cal(v50_simpath, inpath)
 
