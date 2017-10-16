@@ -2,7 +2,7 @@ import os
 import sys
 
 import numpy as np
-import matplotlib as mpl
+#import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -16,10 +16,11 @@ from rootpy.plotting.style import set_style
 from root_numpy import root2rec, hist2array, stack, stretch
 from ROOT import TFile, TH1F, gROOT, TGraph
 
+import ROOT as r
+
 import iminuit, probfit
 
 import rootpy.plotting.root2matplotlib as rplt
-import ROOT
 
 from os.path import expanduser
 
@@ -37,7 +38,7 @@ root_style = True
 
 #import seaborn as sns
 #sns.set_style("whitegrid", {'axes.grid' : False})
-#sns.set_palette("cubehelix", 8)
+#sns.set_palette("cubehelix", 4)
 
 
 if root_style == True :
@@ -556,14 +557,25 @@ def neutron_angles_data(datapath):
     ch4_folded_phis[( (ch4_folded_phis > 90) )] -= 180
 
     # Calculate BP vs non-BP arrays
-    ch3_bp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis < 20)]
-    ch4_bp_thetas = ch4_folded_thetas[np.abs(ch4_folded_phis < 20)]
+    ch3_bp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis) < 20]
+    ch4_bp_thetas = ch4_folded_thetas[np.abs(ch4_folded_phis) < 20]
 
-    ch3_nbp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis > 40)]
-    ch4_nbp_thetas = ch4_folded_thetas[np.abs(ch4_folded_phis > 40)]
+    ch3_nbp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis) > 40]
+    ch4_nbp_thetas = ch4_folded_thetas[np.abs(ch4_folded_phis) > 40]
 
-    ch3_nbp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis > 40)]
-    ch4_nbp_thetas = ch4_folded_thetas[np.abs(ch4_folded_phis > 40)]
+
+    print('Checking bp vs nbp events in data ...')
+    print('\n***************** Ch3 ********************')
+    print('Ch3 number of total events:', len(ch3_folded_thetas),
+            len(ch3_folded_phis) )
+    print('Ch3 number of bp events:', len(ch3_bp_thetas) )
+    print('Ch3 number of nbp events:', len(ch3_nbp_thetas) )
+
+    print('\n***************** Ch4 ********************')
+    print('Ch4 number of total events:', len(ch4_folded_thetas),
+            len(ch4_folded_phis) )
+    print('Ch4 number of bp events:', len(ch4_bp_thetas) )
+    print('Ch4 number of nbp events:', len(ch4_nbp_thetas) )
 
     return (ch3_thetas, ch4_thetas, ch3_phis, ch4_phis, ch3_bp_thetas,
             ch3_nbp_thetas, ch4_bp_thetas, ch4_nbp_thetas)
@@ -1103,7 +1115,7 @@ def neutron_study(datapath):
     print('\nOutside Beampipe:')
     print('TPC3:', len(tpc3theta_array_notbp))
     print('TPC4:', len(tpc4theta_array_notbp))
-    #input('well?')
+    input('well?')
 
     ### Begin plotting
     if root_style == True :
@@ -2690,14 +2702,14 @@ def neutron_study_sim(simpath):
     ch3_folded_phis = folded_phis[ch3_sels]    
     ch4_folded_phis = folded_phis[ch4_sels]    
 
-    ch3_bp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis < 20)]
-    ch4_bp_thetas = ch4_folded_thetas[np.abs(ch4_folded_phis < 20)]
+    ch3_bp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis) < 20]
+    ch4_bp_thetas = ch4_folded_thetas[np.abs(ch4_folded_phis) < 20]
 
-    ch3_nbp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis > 40)]
-    ch4_nbp_thetas = ch4_folded_thetas[np.abs(ch4_folded_phis > 40)]
+    ch3_nbp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis) > 40]
+    ch4_nbp_thetas = ch4_folded_thetas[np.abs(ch4_folded_phis) > 40]
 
-    ch3_nbp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis > 40)]
-    ch4_nbp_thetas = ch4_folded_thetas[np.abs(ch4_folded_phis > 40)]
+    ch3_nbp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis) > 40]
+    ch4_nbp_thetas = ch4_folded_thetas[np.abs(ch4_folded_phis) > 40]
 
     ch3_bp_thetas = np.histogram(
             ch3_bp_thetas,
@@ -2780,7 +2792,6 @@ def neutron_study_sim(simpath):
                                                    )]
     ch3_thetas_nbpdirect = [ch3_thetas_nbpdirect_touschek,
             ch3_thetas_nbpdirect_beamgas]
-        
 
     ch4_phis_touschek = folded_phis[( (ch4_sels) & (touschek==1) )]
     ch4_phis_beamgas = folded_phis[( (ch4_sels) & (beam_gas==1) )]
@@ -2800,7 +2811,6 @@ def neutron_study_sim(simpath):
                                                    & (np.abs(folded_phis) <
                                                        20)
                                                    )]
-
     ch4_thetas_bpdirect = [ch4_thetas_bpdirect_touschek,
             ch4_thetas_bpdirect_beamgas]
 
@@ -2816,6 +2826,45 @@ def neutron_study_sim(simpath):
                                                    )]
     ch4_thetas_nbpdirect = [ch4_thetas_nbpdirect_touschek,
             ch4_thetas_nbpdirect_beamgas]
+
+
+    print('Checking that number of neutrons selected in beampipe versus')
+    print('non-beampipe criteria are consistent ...')
+
+    print('\n***************** Ch3 ********************')
+    print('\nCh3 bg total:', len(ch3_thetas_beamgas))
+    print('Ch3 bg beampipe-direct:', len(ch3_thetas_bpdirect_beamgas))
+    print('Ch3 bg non-beampipe:', len(ch3_thetas_nbpdirect_beamgas))
+
+    print('\nCh3 t total:', len(ch3_thetas_touschek))
+    print('Ch3 t beampipe-direct:', len(ch3_thetas_bpdirect_touschek))
+    print('Ch3 t non-beampipe:', len(ch3_thetas_nbpdirect_touschek))
+
+    print('\n***************** Ch4 ********************')
+    print('\nCh4 bg total:', len(ch4_thetas_beamgas))
+    print('Ch4 bg beampipe-direct:', len(ch4_thetas_bpdirect_beamgas))
+    print('Ch4 bg non-beampipe:', len(ch4_thetas_nbpdirect_beamgas))
+
+    print('\nCh4 t total:', len(ch4_thetas_touschek))
+    print('Ch4 t beampipe-direct:', len(ch4_thetas_bpdirect_touschek))
+    print('Ch4 t non-beampipe:', len(ch4_thetas_nbpdirect_touschek))
+
+    print('\nChecking values from main array with all events instead of \
+sub-arrays...')
+    print('\nTotal sim events:', len(folded_thetas[sels]) )
+    print('Total sim beampipe direct events:', 
+            len(folded_thetas[
+                            (sels)
+                            & (np.abs(folded_phis) < 20)
+                            ])
+            )
+    print('Total sim non-beampipe direct events:', 
+            len(folded_thetas[
+                            (sels)
+                            & (np.abs(folded_phis) > 40)
+                            ])
+            )
+    #input('well?')
 
 
 
@@ -3009,13 +3058,8 @@ def energy_eff_study(gain_path):
             1.0/np_hist_allphi[0])
 
 
-    ### Begin plotting
-    if root_style == True :
-        color = 'black'
-        facecolor=None
-    elif root_style == False :
-        sns.set(color_codes=True)
-        color = None
+    color = 'k'
+
     # 'Efficiency' plot individually
 
     eff = np_hist_n[0] / np_hist_all[0]
@@ -3602,29 +3646,33 @@ def energy_study(datapath, simpath):
     print('Printing number of recoils from weighted simulation ... ')
     print('Ch 3: BG: T: ', ch3_beamgas_n.sum(), ch3_touschek_n.sum())
     print('Ch 4: BG: T: ', ch4_beamgas_n.sum(), ch4_touschek_n.sum())
-    #input('well?')
+    input('well?')
 
     ### Plots
+    from matplotlib.ticker import ScalarFormatter
     f = plt.figure()
     ax1 = f.add_subplot(111)
 
     ax1.hist([ch3_data_bin_centers,ch3_data_bin_centers], bins=ch3_data_bins,
             weights=ch3_bkg_weights,
             range=[0,np.max(ch3_data_E)],
-            label=['Touschek MC','Beam Gas MC'],
+            label=['MC Touschek ','MC Beam Gas'],
             stacked=True, color=['C0','C1'])
 
     ax1.errorbar(ch3_data_bin_centers, ch3_data_n, yerr=np.sqrt(ch3_data_n), fmt='o', color='black',
             label='Experiment')
-    ax1.plot(ch3_data_pdf_x, ch3_data_pdf_y, color='r', lw=2)
+    ax1.plot(ch3_data_pdf_x, ch3_data_pdf_y, color='C3', lw=2)
     ax1.plot(ch3_touschek_pdf_x, ch3_touschek_pdf_y, color='C2', lw=2)
     ax1.plot(ch3_beamgas_pdf_x, ch3_beamgas_pdf_y, color='C2', lw=2)
+    ax1.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+    ax1.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
     ax1.set_xlabel('Detected Energy [keV]', ha='right', x=1.0)
-    ax1.set_ylabel('Events per bin', ha='right', y=1.0)
+    ax1.set_ylabel('Events per 80 keV', ha='right', y=1.0)
     ax1.set_ylim(1E-1,1E4)
     ax1.set_yscale('log')
     ax1.grid(b=False)
     ax1.legend(loc='best')
+    plt.tick_params(axis='both', which='major', labelsize=20)
     f.savefig('ch3_recoilE_datavsMC.pdf')
 
 
@@ -3634,20 +3682,23 @@ def energy_study(datapath, simpath):
     ax2.hist([ch4_data_bin_centers,ch4_data_bin_centers], bins=ch4_data_bins,
             weights=ch4_bkg_weights,
             range=[0,np.max(ch4_data_E)],
-            label=['Touschek MC','Beam Gas MC'],
+            label=['MC Touschek','MC Beam Gas'],
             stacked=True, color=['C0','C1'])
 
     ax2.errorbar(ch4_data_bin_centers, ch4_data_n, yerr=np.sqrt(ch4_data_n), fmt='o', color='black',
             label='Experiment')
-    ax2.plot(ch4_data_pdf_x, ch4_data_pdf_y, color='r', lw=2)
+    ax2.plot(ch4_data_pdf_x, ch4_data_pdf_y, color='C3', lw=2)
     ax2.plot(ch4_touschek_pdf_x, ch4_touschek_pdf_y, color='C2', lw=2)
     ax2.plot(ch4_beamgas_pdf_x, ch4_beamgas_pdf_y, color='C2', lw=2)
+    ax2.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+    ax2.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
     ax2.set_xlabel('Detected Energy [keV]', ha='right', x=1.0)
-    ax2.set_ylabel('Events per bin', ha='right', y=1.0)
+    ax2.set_ylabel('Events per 80 keV', ha='right', y=1.0)
     ax2.set_ylim(1E-1,1E4)
     ax2.set_yscale('log')
     ax2.grid(b=False)
-    ax2.legend(loc='best')
+    #ax2.legend(loc='best')
+    plt.tick_params(axis='both', which='major', labelsize=20)
     g.savefig('ch4_recoilE_datavsMC.pdf')
 
     #h = plt.figure()
@@ -3888,35 +3939,162 @@ def gain_study(gain_path):
     t4_tr = np.std(result_t4['mean'].values[:-10])
     t4_br = np.std(result_b4['mean'].values[:-10])
 
+    # Fit values to a line and plot
+
     h, (cx1) = plt.subplots(1, 1)
-    result_t3.plot.scatter(x='x', y='mean', yerr='sem', ax=cx1,
-        color='C2')
-    result_b3.plot.scatter(x='x', y='mean', yerr='sem', ax=cx1)
+
+    yerr_init = result_t3['sem'].values
+    yerr = yerr_init[np.isnan(yerr_init) == False]
+    x = result_t3['x'].values[np.isnan(yerr) == False]
+    y = result_t3['mean'].values[np.isnan(yerr) == False]
+
+    chi2 = probfit.Chi2Regression(
+            probfit.linear, 
+            x[0:-10],
+            y[0:-10],
+            yerr[0:-10],
+            )
+    minu = iminuit.Minuit(chi2)
+    minu.migrad()
+
+    pars = minu.values
+
+    ((tt3_x, tt3_y), _, (tt3_pdf_x, tt3_pdf_y), _) = ( chi2.draw(minu,
+        print_par=False, no_plot=True) )
+
+    tt3_pdf_x[-1] = 25000
+    tt3_pdf_y[-1] = tt3_pdf_x[-1] * pars['m'] + pars['c']
+    x /= 3600.0
+    cx1.errorbar(x=x,
+                 y=y,
+                 yerr=yerr,
+                 color='C2',
+                 marker='^',
+                 mfc='none',
+                 ms=4.5,
+                 fmt='o',
+                 )
+
+    yerr_init = result_b3['sem'].values
+    yerr = yerr_init[np.isnan(yerr_init) == False]
+    x = result_b3['x'].values[np.isnan(yerr) == False]
+    y = result_b3['mean'].values[np.isnan(yerr) == False]
+
+    chi2 = probfit.Chi2Regression(
+            probfit.linear, 
+            x[0:-10],
+            y[0:-10],
+            yerr[0:-10],
+            )
+
+    minu = iminuit.Minuit(chi2)
+    minu.migrad()
+
+    pars = minu.values
+
+    ((tb3_x, tb3_y), _, (tb3_pdf_x, tb3_pdf_y), _) = ( chi2.draw(minu,
+        print_par=False, no_plot=True) )
+
+    tb3_pdf_x[-1] = 25000
+    tb3_pdf_y[-1] = tb3_pdf_x[-1] * pars['m'] + pars['c']
+    x /= 3600.0
+    cx1.errorbar(x=x,
+                 y=y,
+                 yerr=yerr,
+                 color='C0',
+                 mfc='none',
+                 ms=4.5,
+                 fmt='o',
+                 )
         
-    #plt.title('Alpha Sum Q vs Time in TPC 3 (profile)')
-    #plt.legend(loc='best')
+    cx1.plot(tt3_pdf_x, tt3_pdf_y, lw=3, color='C5', zorder=10)
+    cx1.plot(tb3_pdf_x, tb3_pdf_y, lw=3, color='C5', zorder=10)
+
     from matplotlib.ticker import ScalarFormatter
     cx1.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
     cx1.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
     cx1.set_ylim(0,5E7)
-    cx1.set_xlabel('Time [s]', ha='right', x=1.0)
-    cx1.set_ylabel('Detected Charge [q]', ha='right', y=1.0)
-    #cx1.legend_.remove()
+    cx1.set_xlim(plt.xlim()[0], 18500.0/3600.0)
+    cx1.set_xlabel('Time [h]', ha='right', x=1.0)
+    cx1.set_ylabel('Detected Charge [e]', ha='right', y=1.0)
     h.savefig('tpc3_gainstability.pdf')
-    #plt.show()
 
-    l, (cx1) = plt.subplots(1, 1)
-    result_t4.plot.scatter(x='x', y='mean', yerr='sem', ax=cx1,
-       color='C2')
-    result_b4.plot.scatter(x='x', y='mean', yerr='sem', ax=cx1)
-    #bx2.set_title('Alpha Sum Q vs Time in TPC4 (profile)')
-    #bx2.legend(loc='lower left')
-    cx1.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-    cx1.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-    cx1.set_ylim(0,5E7)
-    cx1.set_xlabel('Time [s]', ha='right', x=1.0)
-    cx1.set_ylabel('Detected Charge [q]', ha='right', y=1.0)
-    #cx1.legend_.remove()
+    l, (cx2) = plt.subplots(1, 1)
+
+    yerr_init = result_t4['sem'].values
+    yerr = yerr_init[np.isnan(yerr_init) == False]
+    x = result_t4['x'].values[np.isnan(yerr) == False]
+    y = result_t4['mean'].values[np.isnan(yerr) == False]
+
+    chi2 = probfit.Chi2Regression(
+            probfit.linear, 
+            x[0:-10],
+            y[0:-10],
+            yerr[0:-10],
+            )
+    minu = iminuit.Minuit(chi2)
+    minu.migrad()
+
+    pars = minu.values
+
+    ((tt4_x, tt4_y), _, (tt4_pdf_x, tt4_pdf_y), _) = ( chi2.draw(minu,
+        print_par=False, no_plot=True) )
+
+    tt4_pdf_x[-1] = 25000
+    tt4_pdf_y[-1] = tt4_pdf_x[-1] * pars['m'] + pars['c']
+    x /= 3600.0
+    cx2.errorbar(x=x,
+                 y=y,
+                 yerr=yerr,
+                 color='C2',
+                 mfc='none',
+                 marker='^',
+                 ms=4.5,
+                 fmt='o',
+                 )
+
+    yerr_init = result_b4['sem'].values
+    yerr = yerr_init[np.isnan(yerr_init) == False]
+    x = result_b4['x'].values[np.isnan(yerr) == False]
+    y = result_b4['mean'].values[np.isnan(yerr) == False]
+
+    chi2 = probfit.Chi2Regression(
+            probfit.linear, 
+            x[0:-10],
+            y[0:-10],
+            yerr[0:-10],
+            )
+
+    minu = iminuit.Minuit(chi2)
+    minu.migrad()
+
+    pars = minu.values
+
+    ((tb4_x, tb4_y), _, (tb4_pdf_x, tb4_pdf_y), _) = ( chi2.draw(minu,
+        print_par=False, no_plot=True) )
+
+    tb4_pdf_x[-1] = 25000
+    tb4_pdf_y[-1] = tb4_pdf_x[-1] * pars['m'] + pars['c']
+    x /= 3600.0
+    cx2.errorbar(x=x,
+                 y=y,
+                 yerr=yerr,
+                 color='C0',
+                 mfc='none',
+                 ms=4.5,
+                 fmt='o',
+                 )
+
+    cx2.plot(tt4_pdf_x, tt4_pdf_y, lw=3, color='C5', zorder=10)
+    cx2.plot(tb4_pdf_x, tb4_pdf_y, lw=3, color='C5', zorder=10)
+        
+    cx2.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+    cx2.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+    cx2.set_ylim(0,5E7)
+    cx2.set_xlim(plt.xlim()[0], 18500.0/3600.0)
+    cx2.set_xlabel('Time [h]', ha='right', x=1.0)
+    cx2.set_ylabel('Detected Charge [e]', ha='right', y=1.0)
+
     l.savefig('tpc4_gainstability.pdf')
     plt.show()
 
@@ -4489,7 +4667,7 @@ def compare_toushek(datapath, simpath):
     print('TPC 3: ', ch3_weighted_rates * subrun_times)
     print('TPC 4: ', ch4_weighted_rates * subrun_times)
 
-    f = plt.figure()
+    f = plt.figure(figsize=(8,7))
     ax1 = f.add_subplot(111)
 
     ax1.errorbar(
@@ -4497,7 +4675,7 @@ def compare_toushek(datapath, simpath):
                 (data_toushek[0]/exp_IPZ2),
                 yerr=(data_toushek[0]/exp_IPZ2)/np.sqrt(subrun_times),
                 fmt='o',
-                ms=5.8,
+                #ms=5.8,
                 color='C0',
                 label='TPC 3 Exp')
 
@@ -4506,7 +4684,7 @@ def compare_toushek(datapath, simpath):
                 (ch3_weighted_rates)/exp_IPZ2,
                 yerr=ch3_weighted_rates/exp_IPZ2/np.sqrt(subrun_times),
                 fmt='^',
-                ms=6.2,
+                #ms=6.2,
                 color='C0',
                 #mec='C0',
                 mfc='none',
@@ -4518,7 +4696,7 @@ def compare_toushek(datapath, simpath):
                 (data_toushek[2]/exp_IPZ2),
                 yerr=(data_toushek[2]/exp_IPZ2)/np.sqrt(subrun_times),
                 fmt='o',
-                ms=5.8,
+                #ms=5.8,
                 color='C1',
                 label='TPC 4 Exp')
 
@@ -4527,7 +4705,7 @@ def compare_toushek(datapath, simpath):
                 (ch4_weighted_rates)/exp_IPZ2,
                 yerr=ch4_weighted_rates/exp_IPZ2/np.sqrt(subrun_times),
                 fmt='^',
-                ms=6.2,
+                #ms=6.2,
                 color='C1',
                 mew=1.0,
                 mfc='none',
@@ -4566,15 +4744,20 @@ def compare_toushek(datapath, simpath):
 
     ax1.set_xlim(0,plt.xlim()[1])
     ax1.set_ylim(0,plt.ylim()[1])
-    ax1.set_xlabel('$\\frac{I}{P\sigma_yZ_{eff}^{2}}\ [mA^{-1}\ Pa^{-1}\ \mu m^{-1}]$\t',
-           ha='right', x=1.0)
-    ax1.set_ylabel('$\\frac{Rate}{IPZ_{eff}^{2}}\ [Hz\ mA^{-1}\ Pa^{-1}]$', ha='right', y=1.0)
+    #ax1.set_xlabel(u'$\\frac{I}{P\sigma_yZ_{e}^{2}}\ [mA^{-1}\ Pa^{-1}\ \
+    #        \u00B5m^{-1}] \\times 10^{5}$',
+    ax1.set_xlabel(u'$\\frac{I}{P\sigma_yZ_{e}^{2}}\ [mA^{-1}\ Pa^{-1}\ \u00B5m^{-1}]$',
+           ha='right', x=0.89, fontsize=28)
+    ax1.set_ylabel('$\\frac{Rate}{IPZ_{e}^{2}}\ [Hz\ mA^{-1}\ Pa^{-1}]$',
+            ha='right', y=1.0, fontsize=28)
     from matplotlib.ticker import ScalarFormatter
     ax1.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
     ax1.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
     ax1.ticklabel_format(style='sci', axis='x', scilimits=(0, 0))
     ax1.legend(loc='best')
+    plt.tick_params(axis='both', which='major', labelsize=16)
     #ax1.ticklabel_format(style='sci', axis='x', scilimits=(0, 0))
+    #ax1.get_xaxis().get_offset_text().set_x(2)
     f.savefig('tpc_heuristic_bg_vs_t.pdf')
 
     plt.show()
@@ -4599,6 +4782,7 @@ def compare_angles(datapath, simpath):
     print('Data angles:', len(data_angles[0]), len(data_angles[1]),
             len(data_angles[2]), len(data_angles[3]))
 
+    input('check here')
     theta_bins = 9
     phi_bins = 9
 
@@ -4659,43 +4843,178 @@ def compare_angles(datapath, simpath):
 
     plt.show()
 
+    ### Use ROOT TFractionFitter to fit low statistics MC histograms to data
+    h_bg3 = r.TH1F('h_bg3', 'h_bg3', 9, 0.0, 180)
+    h_t3 = r.TH1F('h_t3', 'h_t3', 9, 0.0, 180)
+    h_d3 = r.TH1F('h_d3', 'h_d3', 9, 0.0, 180)
+
+    for theta in sim_angles[8][1] :
+        h_bg3.Fill(theta)
+    test = hist2array(h_bg3)
+    print('Printing BG histo:\n', test)
+    
+    for theta in sim_angles[8][0] :
+        h_t3.Fill(theta)
+    test = hist2array(h_t3)
+    print('Printing T histo:\n', test)
+
+    for theta in data_angles[0]:
+        h_d3.Fill(theta)
+
+    test = hist2array(h_d3)
+    print('Printing data histo:\n', test)
+
+    f = TFile('ch3_histos.root', 'RECREATE')
+    h_bg3.Write()
+    h_t3.Write()
+    h_d3.Write()
+    f.Close()
+    #input('well?')
+
+    mc = r.TObjArray(2)
+    mc.Add(h_bg3)
+    mc.Add(h_t3)
+    fit = r.TFractionFitter(h_d3, mc, 'V')
+    fit.Constrain(0, 0.0, 1.0)
+    fit.Constrain(1, 0.0, 1.0)
+    #vFit.SetParameter(0, 'N_bg', 1.0, 0.1, 1, 100)
+    #vFit.SetParameter(1, 'N_t', 1.0, 0.1, 1, 100)
+
+    #vFit = fit.GetFitter()
+    #fconfig = vFit.Config()
+    #fconfig.SetMinosErrors()
+
+    fit.Fit()
+
+    result = fit.GetPlot()
+
+    test = hist2array(result)
+    print('Printing result histo:\n', test)
+
+    fitted_yield = result.Integral()
+
+    bg_frac3, bg_frac3_err = r.Double(), r.Double()
+    fit.GetResult(0, bg_frac3, bg_frac3_err)
+    print(bg_frac3, bg_frac3_err)
+
+    t_frac3, t_frac3_err = r.Double(), r.Double()
+    fit.GetResult(1, t_frac3, t_frac3_err)
+    print(t_frac3, t_frac3_err)
+    input('well?')
+
+    #result = fit.GetPlot()
+    #np_result = hist2array(result)
+    #print(np_result)
+
+    #h_d3.Draw('Ep')
+    #result.Draw('same')
+    #input('well?')
+
     # Plot sum of Touschek and beam gas obtained from histogram PDF
     sum_hists = (ch3Theta_Touschek_hist[0] + ch3Theta_BeamGas_hist[0])
     sum_norm = np.sum(sum_hists)
     sum_fitted_norm = parameters['TouschekN'] + parameters['BeamGasN']
 
-    plt.hist(thetas,
-            weights=sum_hists*sum_fitted_norm/sum_norm,
-            color='C2', bins=data_edges, label='MC Fitted Sum')
+    #plt.hist(thetas,
+    #        weights=sum_hists*sum_fitted_norm/sum_norm,
+    #        color='C4', bins=data_edges, label='MC Fitted Sum')
 
     # Plot beam gas distribution obtained from histogram PDF
-    plt.hist(thetas,
-            weights=ch3Theta_BeamGas_hist[0]*parameters['BeamGasN']/BeamGas_norm,
-            color='C1', bins=data_edges, label='MC Beam Gas')
+    f = plt.figure(figsize=(10,6*1.25))
+    ax1 = f.add_subplot(111)
+    ax1.hist([thetas, thetas, thetas],
+            weights=[
+                ### Plot the probfit histogrampdf results
+                #ch3Theta_Touschek_hist[0]*parameters['TouschekN']/Touschek_norm,
+                #ch3Theta_BeamGas_hist[0]*parameters['BeamGasN']/BeamGas_norm],
 
-    # Plot Touschek distribution obtained from histogram PDF
-    plt.hist(thetas,
-            weights=ch3Theta_Touschek_hist[0]*parameters['TouschekN']/Touschek_norm,
-            color='C0', bins=data_edges, label='MC Touschek')
+                ### Plot the ROOT TFractionFitter results
+                test*t_frac3,
+                test*(t_frac3 + bg_frac3),
+                test*bg_frac3,
+                ],
+            color=['C0','C4','C3'], bins=data_edges,
+            label=['Fitted MC Touschek','Fitted MC Sum', 'Fitted MC Beam Gas'],
+            #stacked=True,
+            )
 
 
-    plt.errorbar(data_x, data_y, fmt='o', yerr=np.sqrt(data_y), color='k',
-            label='Exp.')
-    #plt.plot(total_pdf_x, total_pdf_y, color='blue', lw=2)
-    #colors = ['orange', 'purple', 'DarkGreen']
-    #labels = ['Background', 'Signal 1', 'Signal 2']
-    #for color, label, part in zip(colors, parts):
-    #    x, y = part
-    #    plt.plot(x, y, ls='--', color=color)
-    #plt.grid(True)
+    ax1.errorbar(data_x, data_y, fmt='o', yerr=np.sqrt(data_y), color='k',
+            label='Experiment')
 
-    plt.xlabel('TPC 3 $\\theta$ [$^\circ$]', ha='right', x=1.0)
-    plt.ylabel('Events per bin', ha='right', y=1.0)
-    plt.ylim(plt.ylim()[0], 150)
-    plt.legend(loc='best')
-    plt.savefig('ch3_theta_histoPDF_fit.pdf')
+    ax1.set_xlabel('TPC 3 $\\theta$ [$^\circ$]', ha='right', x=1.0)
+    ax1.set_ylabel(u'Events per 20\u00B0', ha='right', y=1.0)
+    ax1.set_ylim(plt.ylim()[0], 150)
+
+    handles, labels = ax1.get_legend_handles_labels()
+    print(handles)
+    print(labels)
+    ax1.legend(loc='best', ncol=2)
+    #ax1.savefig('ch3_theta_histoPDF_fit.pdf')
+    f.savefig('ch3_theta_TFractionFitter.pdf')
     plt.show()
 
+    h_bg4 = r.TH1F('h_bg4', 'h_bg4', 9, 0.0, 180)
+    h_t4 = r.TH1F('h_t4', 'h_t4', 9, 0.0, 180)
+    h_d4 = r.TH1F('h_d4', 'h_d4', 9, 0.0, 180)
+
+    for theta in sim_angles[9][1] :
+        h_bg4.Fill(theta)
+    test = hist2array(h_bg4)
+    print('Printing BG histo:\n', test)
+    
+    for theta in sim_angles[9][0] :
+        h_t4.Fill(theta)
+    test = hist2array(h_t4)
+    print('Printing T histo:\n', test)
+
+    for theta in data_angles[1]:
+        h_d4.Fill(theta)
+
+    test = hist2array(h_d3)
+    print('Printing data histo:\n', test)
+
+    f = TFile('ch4_histos.root', 'RECREATE')
+    h_bg4.Write()
+    h_t4.Write()
+    h_d4.Write()
+    f.Close()
+    #input('well?')
+
+    mc = r.TObjArray(2)
+    mc.Add(h_bg4)
+    mc.Add(h_t4)
+    fit = r.TFractionFitter(h_d4, mc, 'V')
+    fit.Constrain(0, 0.0, 1.0)
+    fit.Constrain(1, 0.0, 1.0)
+    vFit = fit.GetFitter()
+    fconfig = vFit.Config()
+    fconfig.SetMinosErrors()
+
+    fit.Fit()
+
+    input('well?')
+    fit.ErrorAnalysis(0.00001)
+
+    print(fit.GetChisquare())
+
+    input('well?')
+
+    result = fit.GetPlot()
+
+    test = hist2array(result)
+    print('Printing result histo:\n', test)
+
+    fitted_yield = result.Integral()
+
+    bg_frac4, bg_frac4_err = r.Double(), r.Double()
+    fit.GetResult(0, bg_frac4, bg_frac4_err)
+    print(bg_frac4, bg_frac4_err)
+
+    t_frac4, t_frac4_err = r.Double(), r.Double()
+    fit.GetResult(1, t_frac4, t_frac4_err)
+    print(t_frac4, t_frac4_err)
+    input('well?')
 
     print('\nNumber of entries in each Ch4 Theta Histogram ..')
     print('Touschek: %i  BeamGas: %i' % (len(sim_angles[9][0]),
@@ -4751,23 +5070,36 @@ def compare_angles(datapath, simpath):
     sum_norm = np.sum(sum_hists)
     sum_fitted_norm = parameters['TouschekN'] + parameters['BeamGasN']
 
-    plt.hist(thetas,
-            weights=sum_hists*sum_fitted_norm/sum_norm,
-            color='C2', bins=data_edges, label='MC Fitted Sum')
+    #plt.hist(thetas,
+    #        weights=sum_hists*sum_fitted_norm/sum_norm,
+    #        color='C4', bins=data_edges, label='MC Fitted Sum')
 
     # Plot beam gas distribution obtained from histogram PDF
-    plt.hist(thetas,
-            weights=ch4Theta_BeamGas_hist[0]*parameters['BeamGasN']/BeamGas_norm,
-            color='C1', bins=data_edges, label='MC Beam Gas')
+    g = plt.figure(figsize=(10,6*1.25))
+    ax2 = g.add_subplot(111)
+    ax2.hist([thetas,thetas],
+            weights=[
+                ### Plot the probfit histogrampdf results
+                #ch4Theta_Touschek_hist[0]*parameters['TouschekN']/Touschek_norm,
+                #ch4Theta_BeamGas_hist[0]*parameters['BeamGasN']/BeamGas_norm],
+
+                ### Plot the ROOT TFractionFitter results
+                test*t_frac4,
+                test*bg_frac4,
+                ],
+            color=['C0','C1',], bins=data_edges,
+            label=['MC Touschek','MC Beam Gas'],
+            stacked=True,
+            )
 
     # Plot Touschek distribution obtained from histogram PDF
-    plt.hist(thetas,
-            weights=ch4Theta_Touschek_hist[0]*parameters['TouschekN']/Touschek_norm,
-            color='C0', bins=data_edges, label='MC Touschek')
+    #plt.hist(thetas,
+    #        weights=ch4Theta_Touschek_hist[0]*parameters['TouschekN']/Touschek_norm,
+    #        color='C0', bins=data_edges, label='MC Touschek')
 
 
-    plt.errorbar(data_x, data_y, fmt='o', yerr=np.sqrt(data_y), color='k',
-            label='Exp.')
+    ax2.errorbar(data_x, data_y, fmt='o', yerr=np.sqrt(data_y), color='k',
+            label='Experiment')
     #plt.plot(total_pdf_x, total_pdf_y, color='blue', lw=2)
     #colors = ['orange', 'purple', 'DarkGreen']
     #labels = ['Background', 'Signal 1', 'Signal 2']
@@ -4776,11 +5108,12 @@ def compare_angles(datapath, simpath):
     #    plt.plot(x, y, ls='--', color=color)
     #plt.grid(True)
 
-    plt.xlabel('TPC 4 $\\theta$ [$^\circ$]', ha='right', x=1.0)
-    plt.ylabel('Events per bin', ha='right', y=1.0)
-    plt.ylim(plt.ylim()[0], 150)
-    plt.legend(loc='best')
-    plt.savefig('ch4_theta_histoPDF_fit.pdf')
+    ax2.set_xlabel('TPC 4 $\\theta$ [$^\circ$]', ha='right', x=1.0)
+    ax2.set_ylabel(u'Events per 20\u00B0', ha='right', y=1.0)
+    ax2.set_ylim(plt.ylim()[0], 150)
+    #ax2.legend(loc='best')
+    #plt.savefig('ch4_theta_histoPDF_fit.pdf')
+    g.savefig('ch4_theta_TFractionFitter.pdf')
     plt.show()
 
 
@@ -4941,7 +5274,7 @@ def compare_angles(datapath, simpath):
     plt.errorbar(data_x, data_y, fmt='o', yerr=np.sqrt(data_y), color='k')
 
     plt.xlabel('TPC 4 $\\phi$ [$^\circ$]', ha='right', x=1.0)
-    plt.ylabel('Events per bin', ha='right', y=1.0)
+    plt.ylabel(u'Events per 20\u00B0', ha='right', y=1.0)
     plt.ylim(plt.ylim()[0], 150)
     plt.legend(loc='best')
     plt.savefig('ch4_phi_histoPDF_fit.pdf')
@@ -4961,7 +5294,7 @@ def compare_angles(datapath, simpath):
     ax1 = f.add_subplot(111)
     ax1.hist(sim_angles[8], bins=theta_bins, range=[0,180], stacked=True,
             label=['Touschek MC','Beam Gas MC'],
-            color=['C1', 'C2'],
+            color=['C0', 'C1'],
             weights=weights)
     ax1.errorbar(thetas+10, n/np.sum(n), yerr=np.sqrt(n)/np.sum(n),
            color='black', fmt='o',label='Experiment')
@@ -4982,8 +5315,8 @@ def compare_angles(datapath, simpath):
     g = plt.figure()
     bx1 = g.add_subplot(111)
     bx1.hist(sim_angles[9], bins=theta_bins, range=[0,180], stacked=True,
-            label=['Touschek MC','Beam Gas MC'],
-            color=['C1', 'C2'],
+            label=['MC Touschek','MC Beam Gas'],
+            color=['C0', 'C1'],
             weights=weights)
     bx1.errorbar(thetas+10, n/np.sum(n), yerr=np.sqrt(n)/np.sum(n), color='black',
            fmt='o', label='Experiment')
@@ -5002,13 +5335,13 @@ def compare_angles(datapath, simpath):
     h = plt.figure()
     cx1 = h.add_subplot(111)
     cx1.hist(sim_angles[10], bins=phi_bins, range=[-90,90], stacked=True,
-            label=['Touschek MC','Beam Gas MC'],
-            color=['C1', 'C2'],
+            label=['MC Touschek','MC Beam Gas'],
+            color=['C0', 'C1'],
             weights=weights)
     cx1.errorbar(phis+10, n/np.sum(n), yerr=np.sqrt(n)/np.sum(n), color='black',
            fmt='o', label='Experiment')
     cx1.set_xlabel('TPC 3 $\phi$ [$^{\circ}$]',ha='right',x=1.0)
-    cx1.set_ylabel('Events per bin',ha='right',y=1.0)
+    cx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     cx1.set_xlim(-100,100)
     cx1.set_ylim(plt.xlim()[0],130)
     cx1.legend(loc='best')
@@ -5022,13 +5355,13 @@ def compare_angles(datapath, simpath):
     k = plt.figure()
     dx1 = k.add_subplot(111)
     dx1.hist(sim_angles[11], bins=phi_bins, range=[-90,90], stacked=True,
-            label=['Touschek MC','Beam Gas MC'],
-            color=['C1', 'C2'],
+            label=['MC Touschek','MC Beam Gas'],
+            color=['C0', 'C1'],
             weights=weights)
     dx1.errorbar(phis+10, n/np.sum(n), yerr=np.sqrt(n)/np.sum(n), color='black',
             fmt='o', label='Experiment')
     dx1.set_xlabel('TPC 4 $\phi$ [$^{\circ}$]',ha='right',x=1.0)
-    dx1.set_ylabel('Events per bin',ha='right',y=1.0)
+    dx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     dx1.set_xlim(-100,100)
     dx1.legend(loc='best')
     dx1.set_ylim(plt.xlim()[0],130)
@@ -5043,13 +5376,13 @@ def compare_angles(datapath, simpath):
     l = plt.figure()
     ex1 = l.add_subplot(111)
     ex1.hist(sim_angles[12], bins=theta_bins, range=[0,180], stacked=True,
-            label=['Touschek MC','Beam Gas MC'],
-            color=['C1', 'C2'],
+            label=['MC Touschek','MC Beam Gas'],
+            color=['C0', 'C1'],
             weights=weights)
     ex1.errorbar(thetas+10,n/np.sum(n),yerr=np.sqrt(n)/np.sum(n),color='black',
             fmt='o',label='Experiment')
     ex1.set_xlabel('TPC 3 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
-    ex1.set_ylabel('Events per bin',ha='right',y=1.0)
+    ex1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     ex1.set_xlim(-10,190)
     ex1.legend(loc='best')
     l.savefig('TPC3_theta_bpdirectvsmc.pdf')
@@ -5063,16 +5396,16 @@ def compare_angles(datapath, simpath):
     m = plt.figure()
     fx1 = m.add_subplot(111)
     fx1.hist(sim_angles[13], bins=theta_bins, range=[0,180], stacked=True,
-            label=['Touschek MC','Beam Gas MC'],
-            color=['C1', 'C2'],
+            label=['MC Touschek','MC Beam Gas'],
+            color=['C0', 'C1'],
             weights=weights)
     fx1.errorbar(thetas+10,n/np.sum(n),yerr=np.sqrt(n)/np.sum(n),color='black',
            fmt='o',label='Experiment')
     fx1.set_xlabel('TPC 3 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
-    fx1.set_ylabel('Events per bin',ha='right',y=1.0)
+    fx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     fx1.set_xlim(-10,190)
     fx1.set_ylim(plt.xlim()[0],130)
-    fx1.legend(loc='best')
+    #fx1.legend(loc='best')
     m.savefig('TPC3_theta_not_bpdirectvsmc.pdf')
 
     weights=[ 
@@ -5084,15 +5417,15 @@ def compare_angles(datapath, simpath):
     o = plt.figure()
     gx1 = o.add_subplot(111)
     gx1.hist(sim_angles[14], bins=theta_bins, range=[0,180], stacked=True,
-            label=['Touschek MC','Beam Gas MC'],
-            color=['C1', 'C2'],
+            label=['MC Touschek','MC Beam Gas'],
+            color=['C0', 'C1'],
             weights=weights)
     gx1.errorbar(thetas+10,n/np.sum(n),yerr=np.sqrt(n)/np.sum(n),color='black',
            fmt='o',label='Experiment')
     gx1.set_xlabel('TPC 4 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
-    gx1.set_ylabel('Events per bin',ha='right',y=1.0)
+    gx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     gx1.set_xlim(-10,190)
-    gx1.legend(loc='best')
+    #gx1.legend(loc='best')
     o.savefig('TPC4_theta_bpdirectvsmc.pdf')
 
     weights=[ 
@@ -5104,15 +5437,15 @@ def compare_angles(datapath, simpath):
     p = plt.figure()
     hx1 = p.add_subplot(111)
     hx1.hist(sim_angles[15], bins=theta_bins, range=[0,180], stacked=True,
-            label=['Touschek MC','Beam Gas MC'],
-            color=['C1', 'C2'],
+            label=['MC Touschek','MC Beam Gas'],
+            color=['C0', 'C1'],
             weights=weights)
     hx1.errorbar(thetas+10,n/np.sum(n),yerr=np.sqrt(n)/np.sum(n),color='black',
             fmt='o',label='Experiment')
     hx1.set_xlabel('TPC 4 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
-    hx1.set_ylabel('Events per bin',ha='right',y=1.0)
+    hx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     hx1.set_xlim(-10,190)
-    hx1.legend(loc='best')
+    #hx1.legend(loc='best')
     p.savefig('TPC4_theta_not_bpdirectvsmc.pdf')
 
 
@@ -5141,7 +5474,7 @@ def compare_angles(datapath, simpath):
 
     print(subrun_Touschek * subrun_times)
     print(subrun_BeamGas * subrun_times)
-    #input('well?')
+    input('well?')
 
 
     (n, bins, patches) = plt.hist(data_angles[0], bins=theta_bins,
@@ -5149,15 +5482,15 @@ def compare_angles(datapath, simpath):
     f = plt.figure()
     ax1 = f.add_subplot(111)
     ax1.hist(sim_angles[8], bins=theta_bins, range=[0,180], stacked=True,
-            label=['Touschek MC','Beam Gas MC'],
+            label=['MC Touschek','MC Beam Gas'],
             color=['C0', 'C1'],
             weights=weights, )
     ax1.errorbar(thetas+10, n, yerr=np.sqrt(n),
             color='black', fmt='o',label='Experiment')
     ax1.set_xlabel('TPC 3 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
-    ax1.set_ylabel('Events per bin',ha='right',y=1.0)
+    ax1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     ax1.set_xlim(-10,190)
-    ax1.legend(loc='best')
+    #ax1.legend(loc='best')
 
     f.savefig('TPC3_theta_datavsmc_sim_weighted.pdf')
 
@@ -5178,14 +5511,14 @@ def compare_angles(datapath, simpath):
     #        weights=sim_angles[1]*(5.5/10), label='Sim',
     #        range=[0,180])
     bx1.hist(sim_angles[9], bins=theta_bins, range=[0,180], stacked=True,
-            label=['Touschek MC','Beam Gas MC'],
+            label=['MC Touschek','MC Beam Gas'],
             color=['C0', 'C1'],
             weights=weights)
     bx1.errorbar(thetas+10, n, yerr=np.sqrt(n), color='black',
             fmt='o', label='Experiment')
 
     bx1.set_xlabel('TPC 4 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
-    bx1.set_ylabel('Events per bin',ha='right',y=1.0)
+    bx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     bx1.set_xlim(-10,190)
     bx1.legend(loc='best')
 
@@ -5205,15 +5538,16 @@ def compare_angles(datapath, simpath):
     #cx1.hist(phis, bins=phi_bins, weights=sim_angles[2]*(5.5/10),
     #        label='Sim', range=[-90,90])
     cx1.hist(sim_angles[10], bins=phi_bins, range=[-90,90], stacked=True,
-            label=['Touschek MC','Beam Gas MC'],
+            label=['MC Touschek','MC Beam Gas'],
             color=['C0', 'C1'],
             weights=weights)
     cx1.errorbar(phis+10, n, yerr=np.sqrt(n), color='black',
             fmt='o', label='Experiment')
 
     cx1.set_xlabel('TPC 3 $\phi$ [$^{\circ}$]',ha='right',x=1.0)
-    cx1.set_ylabel('Events per bin',ha='right',y=1.0)
+    cx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     cx1.set_xlim(-100,100)
+    cx1.set_ylim(0, 100)
     cx1.legend(loc='best')
 
     h.savefig('TPC3_phi_datavsmc_sim_weighted.pdf')
@@ -5233,16 +5567,16 @@ def compare_angles(datapath, simpath):
     #dx1.hist(phis, bins=phi_bins, weights=sim_angles[3]*(5.5/10),
     #        label='Sim', range=[-90,90])
     dx1.hist(sim_angles[11], bins=phi_bins, range=[-90,90], stacked=True,
-            label=['Touschek MC','Beam Gas MC'],
+            label=['MC Touschek','MC Beam Gas'],
             color=['C0', 'C1'],
             weights=weights)
     dx1.errorbar(phis+10, n, yerr=np.sqrt(n), color='black',
             fmt='o', label='Experiment')
 
     dx1.set_xlabel('TPC 4 $\phi$ [$^{\circ}$]',ha='right',x=1.0)
-    dx1.set_ylabel('Events per bin',ha='right',y=1.0)
+    dx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     dx1.set_xlim(-100,100)
-    dx1.legend(loc='best')
+    #dx1.legend(loc='best')
 
     k.savefig('TPC4_phi_datavsmc_sim_weighted.pdf')
 
@@ -5258,14 +5592,15 @@ def compare_angles(datapath, simpath):
     l = plt.figure()
     ex1 = l.add_subplot(111)
     ex1.hist(sim_angles[12], bins=theta_bins, range=[0,180], stacked=True,
-            label=['Touschek MC', 'Beam Gas MC'],
+            label=['MC Touschek ', 'MC Beam Gas'],
             color=['C0', 'C1'],
             weights=weights)
     ex1.errorbar(thetas+10,n,yerr=np.sqrt(n),color='black',
             fmt='o',label='Experiment')
     ex1.set_xlabel('TPC 3 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
-    ex1.set_ylabel('Events per bin',ha='right',y=1.0)
+    ex1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     ex1.set_xlim(-10,190)
+    ex1.set_ylim(0,55)
     ex1.legend(loc='best')
     l.savefig('TPC3_theta_bpdirectvsmc_sim_weighted.pdf')
 
@@ -5282,15 +5617,16 @@ def compare_angles(datapath, simpath):
     m = plt.figure()
     fx1 = m.add_subplot(111)
     fx1.hist(sim_angles[13], bins=theta_bins, range=[0,180], stacked=True,
-            label=['Touschek MC', 'Beam Gas MC'],
+            label=['MC Touschek', 'MC Beam Gas'],
             color=['C0', 'C1'],
             weights=weights)
     fx1.errorbar(thetas+10,n,yerr=np.sqrt(n),color='black',
            fmt='o',label='Experiment')
     fx1.set_xlabel('TPC 3 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
-    fx1.set_ylabel('Events per bin',ha='right',y=1.0)
+    fx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     fx1.set_xlim(-10,190)
-    fx1.legend(loc='best')
+    fx1.set_ylim(0,55)
+    #fx1.legend(loc='best')
     m.savefig('TPC3_theta_not_bpdirectvsmc_sim_weighted.pdf')
 
     weights=[ 
@@ -5305,15 +5641,16 @@ def compare_angles(datapath, simpath):
     o = plt.figure()
     gx1 = o.add_subplot(111)
     gx1.hist(sim_angles[14], bins=theta_bins, range=[0,180], stacked=True,
-            label=['Touschek MC', 'Beam Gas MC'],
+            label=['MC Touschek', 'MC Beam Gas'],
             color=['C0', 'C1'],
             weights=weights)
     gx1.errorbar(thetas+10,n,yerr=np.sqrt(n),color='black',
            fmt='o',label='Experiment')
     gx1.set_xlabel('TPC 4 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
-    gx1.set_ylabel('Events per bin',ha='right',y=1.0)
+    gx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     gx1.set_xlim(-10,190)
-    gx1.legend(loc='best')
+    gx1.set_ylim(0,55)
+    #gx1.legend(loc='best')
     o.savefig('TPC4_theta_bpdirectvsmc_sim_weighted.pdf')
 
     weights=[ 
@@ -5328,15 +5665,16 @@ def compare_angles(datapath, simpath):
     p = plt.figure()
     hx1 = p.add_subplot(111)
     hx1.hist(sim_angles[15], bins=theta_bins, range=[0,180], stacked=True,
-            label=['Touschek MC', 'Beam Gas MC'],
+            label=['MC Touschek', 'MC Beam Gas'],
             color=['C0', 'C1'],
             weights=weights)
     hx1.errorbar(thetas+10,n,yerr=np.sqrt(n),color='black',
             fmt='o',label='Experiment')
     hx1.set_xlabel('TPC 4 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
-    hx1.set_ylabel('Events per bin',ha='right',y=1.0)
+    hx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     hx1.set_xlim(-10,190)
-    hx1.legend(loc='best')
+    hx1.set_ylim(0,55)
+    #hx1.legend(loc='best')
     p.savefig('TPC4_theta_not_bpdirectvsmc_sim_weighted.pdf')
 
     plt.show()
@@ -5728,23 +6066,27 @@ def fit_study(datapath):
     r = plt.figure()
     ax9 = r.add_subplot(111)
     ax9.scatter(tlengths[angle_sels],
-            folded_theta_errs[angle_sels]) 
+            folded_theta_errs[angle_sels], color='k') 
     ax9.set_xlabel('Track length [$\mu$m]',
                     ha='right', x=1.0)
     ax9.set_xlim(plt.xlim()[0], 5000)
     ax9.set_ylabel('Truth $\\theta$ error [$^{\circ}$]',
                     ha='right', y=1.0)
+    ax9.set_ylim(plt.ylim()[0], plt.ylim()[1])
+    ax9.vlines(2000.0, plt.ylim()[0], plt.ylim()[1]*1.5, colors='C2', lw=3, label='Cut')
     r.savefig('tlength_vs_thetaError_withoutcut.pdf')
 
     r = plt.figure()
     ax9 = r.add_subplot(111)
     ax9.scatter(tlengths[angle_sels],
-            folded_phi_errs[angle_sels]) 
+            folded_phi_errs[angle_sels], color='k') 
     ax9.set_xlabel('Track length [$\mu$m]',
                     ha='right', x=1.0)
     ax9.set_xlim(plt.xlim()[0], 5000)
     ax9.set_ylabel('Truth $\\phi$ error [$^{\circ}$]',
                     ha='right', y=1.0)
+    ax9.set_ylim(plt.ylim()[0], plt.ylim()[1])
+    ax9.vlines(2000.0, plt.ylim()[0], plt.ylim()[1]*1.5, colors='C2', lw=3, label='Cut')
     r.savefig('tlength_vs_phiError_withoutcut.pdf')
 
     s = plt.figure()
@@ -6407,10 +6749,13 @@ def cut_study(simpath, datapath):
             range=[0,16],
             label='MC Nuclear Recoils',
             histtype='step',
-            color='C3')
+            color='C1',
+            lw=3)
     ax0.set_xlabel('Edge code', ha='right', x=1.0)
-    ax0.set_ylabel('Events per bin', ha='right', y=1.0)
+    ax0.set_ylabel('Events per edge code', ha='right', y=1.0)
     ax0.get_xaxis().set_major_locator(MaxNLocator(integer=True) )
+    ax0.set_ylim(plt.ylim()[0], plt.ylim()[1])
+    ax0.vlines(1,0, plt.ylim()[1]*2.0, colors='C3', lw=3, label='Selection')
     ax0.legend(loc='best')
     if 'v4.1' in simpath : 
         plotname= 'cuts_edgecode_v41.pdf'
@@ -6427,8 +6772,9 @@ def cut_study(simpath, datapath):
             color='C0')
     ax1.hist(dQdx[sig_edge_cut], bins=100,
             range=[0,np.max(dQdx)], label='MC Nuclear Recoils',
-            histtype='step', color='C3')
-    ax1.set_xlabel('dQ/dx [charge/$\mu$m]', ha='right', x=1.0)
+            histtype='step', color='C1',
+            lw=3)
+    ax1.set_xlabel('dQ/dx [e/$\mu$m]', ha='right', x=1.0)
     ax1.set_xlim(0,1000)
     ax1.set_ylabel('Events per bin', ha='right', y=1.0)
     ax1.legend(loc='best')
@@ -6447,9 +6793,12 @@ def cut_study(simpath, datapath):
             color='C0')
     ax2.hist(dQdx[sig_edge_cut], bins=100,
             range=[0,np.max(dQdx)], label='MC Nuclear Recoils',
-            histtype='step', color='C3')
-    ax2.set_xlabel('dQ/dx [charge/$\mu$m]', ha='right', x=1.0)
-    ax2.set_ylabel('Events per bin', ha='right', y=1.0)
+            histtype='step', color='C1',
+            lw=2)
+    ax2.set_xlabel(u'dQ/dx [e/\u00B5m]', ha='right', x=1.0)
+    ax2.set_ylabel(u'Events per 60 e/\u00B5m', ha='right', y=1.0)
+    ax2.set_ylim(plt.ylim()[0], plt.ylim()[1])
+    ax2.vlines(500.0, plt.ylim()[0], plt.ylim()[1]*1.5, colors='C3', lw=3, label='Selection')
     ax2.legend(loc='best')
     if 'v4.1' in simpath :
         plotname = 'cuts_dQdx_v41.pdf'
@@ -6462,10 +6811,9 @@ def cut_study(simpath, datapath):
     h = plt.figure()
     ax3 = h.add_subplot(111)
     ax3.hist(npoints[bak_dQdx_cut], bins=100, range=[0,np.max(npoints)],
-            label='MC Background',
-            color='C0')
+            label='MC Background')
     ax3.hist(npoints[sig_dQdx_cut], bins=100, range=[0,np.max(npoints)],
-            label='MC Nuclear Recoils', histtype='step', color='C3')
+            label='MC Nuclear Recoils', histtype='step', color='C1')
     ax3.legend(loc='best')
     ax3.set_xlabel('Pixels over threshold', ha='right', x=1.0)
     ax3.set_ylabel('Events per bin', ha='right', y=1.0)
@@ -6479,15 +6827,20 @@ def cut_study(simpath, datapath):
     # Unzoomed
     l = plt.figure()
     ax4 = l.add_subplot(111)
-    ax4.hist(npoints[bak_dQdx_cut], bins=100,
+    ax4.hist(npoints[bak_dQdx_cut], bins=range(0,int(np.max(npoints)) + 40, 40),
             range=[0,np.max(npoints)], label='MC Background',
             color='C0')
-    ax4.hist(npoints[sig_dQdx_cut], bins=100,
+    ax4.hist(npoints[sig_dQdx_cut], bins=range(0,int(np.max(npoints)) + 40, 40),
             range=[0,np.max(npoints)], label='MC Nuclear Recoils',
-            histtype='step', color='C3')
-    ax4.legend(loc='best')
+            histtype='step', color='C1',
+            lw=3)
     ax4.set_xlabel('Pixels over threshold', ha='right', x=1.0)
-    ax4.set_ylabel('Events per bin', ha='right', y=1.0)
+    ax4.set_ylabel('Events per 30 pixels', ha='right', y=1.0)
+    ax4.set_xscale('log')
+    ax4.set_yscale('log')
+    ax4.set_ylim(plt.ylim()[0], plt.ylim()[1])
+    ax4.vlines(40.0, plt.ylim()[0], plt.ylim()[1]*1.5, colors='C3', lw=3, label='Selection')
+    ax4.legend(loc='best')
     if 'v4.1' in simpath:
         plotname = 'cuts_npoints_v41.pdf'
     elif 'v5.2' in simpath:
@@ -6499,16 +6852,16 @@ def cut_study(simpath, datapath):
     #ax5.scatter(dQdx[sig_min_rets_cut], npoints[sig_min_rets_cut],
     #            label='MC Nuclear Recoils',color='k', facecolor='none')
     ax5.scatter(dQdx[bak_min_rets_cut], npoints[bak_min_rets_cut],
-                label='MC Background', color='C1')
+                label='MC Background', color='C2')
     ax5.scatter(dQdx[( (hitside==0) & (pdg==1000020040.0) & (dQdx>500.0) )],
                 npoints[( (hitside==0) & (pdg==1000020040.0) & (dQdx>500.0) )],
-                label='MC He Recoils', color='C2')
+                label='MC He Recoils', color='C0')
     ax5.scatter(dQdx[( (hitside==0) & (pdg>1000020040.0) & (dQdx>500.0) )], 
                 npoints[( (hitside==0) & (pdg>1000020040.0) & (dQdx>500.0) )],
-                label='MC C/O Recoils', color='C0')
+                label='MC C/O Recoils', color='C1')
     ax5.scatter(data_dQdx[data_npoints_cut], data_npoints[data_npoints_cut],
                 label='Experiment', color='k', facecolor='none', s=8.8)
-    ax5.set_xlabel('dQ/dx [charge/$\mu$m]', ha='right', x=1.0)
+    ax5.set_xlabel(u'dQ/dx [e/\u00B5m]', ha='right', x=1.0)
     ax5.set_ylabel('Pixels over threshold', ha='right', y=1.0)
     ax5.legend(loc='best')
     if 'v4.1' in simpath:
@@ -6522,14 +6875,14 @@ def cut_study(simpath, datapath):
     #ax8.scatter(dQdx[sig_min_rets_cut], npoints[sig_min_rets_cut],
     #            label='MC Nuclear Recoils',color='k', facecolor='none')
     ax8.scatter(dQdx[bak_min_rets_cut], npoints[bak_min_rets_cut],
-                label='MC Background', color='C3')
+                label='MC Background', color='C2')
     ax8.scatter(dQdx[( (hitside==0) & (pdg==1000020040.0) & (dQdx>500.0) )],
                 npoints[( (hitside==0) & (pdg==1000020040.0) & (dQdx>500.0) )],
-                label='MC He Recoils', facecolor='none', color='C4')
+                label='MC He Recoils', facecolor='none', color='C1')
     ax8.scatter(dQdx[( (hitside==0) & (pdg>1000020040.0) & (dQdx>500.0) )], 
                 npoints[( (hitside==0) & (pdg>1000020040.0) & (dQdx>500.0) )],
-                label='MC C/O Recoils', facecolor='none', color='C2')
-    ax8.set_xlabel('dQ/dx [charge/$\mu$m]', ha='right', x=1.0)
+                label='MC C/O Recoils', facecolor='none', color='C0')
+    ax8.set_xlabel(u'dQ/dx [e/\u00B5m]', ha='right', x=1.0)
     ax8.set_ylabel('Pixels over threshold', ha='right', y=1.0)
     ax8.set_xlim(plt.xlim()[0],1500)
     ax8.set_ylim(plt.ylim()[0],1000)
@@ -6549,7 +6902,7 @@ def cut_study(simpath, datapath):
             bins=20,
             color='C0')
     ax6.hist(npoints[pdg>10000], label='MC Nuclear Recoils', range=[0,100],
-            bins=20, histtype='step', color='C3')
+            bins=20, histtype='step', color='C1')
     ax6.set_xlabel('Pixels over threshold', ha='right', x=1.0)
     ax6.set_ylabel('Events per bin', ha='right', y=1.0)
     #ax6.legend(loc='best')
@@ -6558,11 +6911,11 @@ def cut_study(simpath, datapath):
     ax7 = o.add_subplot(111)
     ax7.scatter(tlengths[( (sig_npoints_cut) & (pdg == 1000020040.0) )],
                 sumQ[( (sig_npoints_cut) & (pdg == 1000020040.0) )],
-                label='MC He Recoils', color='C1' )
+                label='MC He Recoils', color='C0' )
 
     ax7.scatter(tlengths[( (sig_npoints_cut) & (pdg > 1000020040.0) )],
                 sumQ[( (sig_npoints_cut) & (pdg > 1000020040.0) )],
-                label='MC C/O Recoils', color='C0' )
+                label='MC C/O Recoils', color='C1' )
 
     ax7.scatter(tlengths[( (bak_npoints_cut) & (pdg < 10000) )],
                 sumQ[( (bak_npoints_cut) & (pdg < 10000) )],
@@ -6571,9 +6924,9 @@ def cut_study(simpath, datapath):
                 data_sumQ[( (data_npoints_cut) )],
                 facecolor='none', label='Experiment', color='k', s=8.8)
 
-    ax7.set_xlabel('Track Length [$\mu$m]', ha='right', x=1.0)
+    ax7.set_xlabel(u'Track Length [\u00B5m]', ha='right', x=1.0)
     ax7.set_ylim(plt.ylim()[0], 1E8)
-    ax7.set_ylabel('Detected Charge [electrons]', ha='right', y=1.0)
+    ax7.set_ylabel('Detected Charge [e]', ha='right', y=1.0)
     ax7.legend(loc='best')
     if 'v4.1' in simpath:
         plotname = 'tlength_vs_Erecoil_v41.pdf'
@@ -6586,11 +6939,11 @@ def cut_study(simpath, datapath):
     ax7 = o.add_subplot(111)
     ax7.scatter(tlengths[( (sig_npoints_cut) & (pdg == 1000020040.0) )],
                 sumQ[( (sig_npoints_cut) & (pdg == 1000020040.0) )],
-                label='MC He Recoils', color='C1' )
+                label='MC He Recoils', color='C0' )
 
     ax7.scatter(tlengths[( (sig_npoints_cut) & (pdg > 1000020040.0) )],
                 sumQ[( (sig_npoints_cut) & (pdg > 1000020040.0) )],
-                label='MC C/O Recoils', color='C0' )
+                label='MC C/O Recoils', color='C1' )
 
     ax7.scatter(tlengths[( (bak_npoints_cut) & (pdg < 10000) )],
                 sumQ[( (bak_npoints_cut) & (pdg < 10000) )],
@@ -6602,11 +6955,10 @@ def cut_study(simpath, datapath):
     from matplotlib.ticker import ScalarFormatter
     ax7.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
     ax7.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-
-    ax7.set_xlabel('Track Length [$\mu$m]', ha='right', x=1.0)
+    ax7.set_xlabel(u'Track Length [\u00B5m]', ha='right', x=1.0)
     ax7.set_xlim(plt.xlim()[0], 15000)
     ax7.set_ylim(plt.ylim()[0], 0.5E8)
-    ax7.set_ylabel('Detected Charge [electrons]', ha='right', y=1.0)
+    ax7.set_ylabel('Detected Charge [e]', ha='right', y=1.0)
     ax7.legend(loc='best')
     plotname = 'tlength_vs_Erecoil_v52_and_data_zoomed.pdf'
     o.savefig(plotname)
@@ -7125,7 +7477,7 @@ def energy_cal(simpath, datapath):
             color='C1',
             range=[np.min(data_ch4Top_Q), np.max(sim_botSource_Q)])
 
-    ax1.set_xlabel('Event sumQ\t\t\t\t\t\t\t\t\t', ha='right', x=1.0)
+    ax1.set_xlabel('Event sumQ', ha='right', x=1.0)
     ax1.set_ylabel('Events per bin', ha='right', y=1.0)
     ax1.set_ylim(plt.ylim()[0], plt.ylim()[1]*1.75)
     ax1.legend(loc='best', ncol=3, fontsize=16)
@@ -7156,22 +7508,22 @@ def energy_cal(simpath, datapath):
 
     ax2.hist(data_ch3Top_dQdx,
             weights=[1/len(data_ch3Top_dQdx)]*len(data_ch3Top_dQdx),bins=100,
-            label='TPC 3 Top', hatch='\\',
+            label='TPC 3 Top', hatch='\\', color='C6',
             range=[np.min(data_ch4Top_dQdx), np.max(sim_botSource_dQdx)])
 
     ax2.hist(sim_botSource_dQdx, weights=sim_botSource_dQdx_weights, bins=100,
-            histtype='step', label='Sim Bot', linestyle='dotted',
-            color='C0',
+            histtype='step', label='Sim Bot', linestyle='dotted', lw=3,
+            #color='C0',
             range=[np.min(data_ch4Top_dQdx), np.max(sim_botSource_dQdx)])
 
     ax2.hist(sim_topSource_dQdx, weights=sim_topSource_dQdx_weights, bins=100,
-            histtype='step', label='Sim Top',linestyle='dashdot',
-            color='C1',
+            histtype='step', label='Sim Top',linestyle='dashdot', lw=3,
+            #color='C1',
             range=[np.min(data_ch4Top_dQdx), np.max(sim_botSource_dQdx)])
 
 
-    ax2.set_xlabel('Event dQdx [charge/$\mu$m]', ha='right', x=1.0)
-    ax2.set_ylabel('Events per bin', ha='right', y=1.0)
+    ax2.set_xlabel(u'Event dQ/dx [e/\u00B5m]', ha='right', x=1.0)
+    ax2.set_ylabel('Events per 27.5 e/\u00B5m', ha='right', y=1.0)
     ax2.set_ylim(0,0.225)
     ax2.legend(loc='best', ncol=3, fontsize=16)
     g.savefig('alphas_data_mc.pdf')
@@ -7420,7 +7772,9 @@ def main():
     inpath = str(home) + '/BEAST/data/TPC/tpc_toushekrun/2016-05-29/'
 
     #compare_toushek(v31_datapath, v54_simpath)
-    #compare_angles(v31_datapath, v52_simpath)
+    compare_angles(v31_datapath, v52_simpath)
+    ##rate_vs_beamsize(datapath)
+    #sim_rate_vs_beamsize(simpath)
 
     #neutron_study_raw(inpath)
     #neutron_study_sim(v4_simpath)
@@ -7435,7 +7789,7 @@ def main():
 
     #cut_study_data(inpath) 
     #fit_study(v52_simpath)
-    cut_study(v52_simpath, inpath)
+    #cut_study(v52_simpath, inpath)
 
     #energy_cal(v50_simpath, inpath)
 
