@@ -500,7 +500,7 @@ def neutron_angles_data(datapath):
                                                       (TPC3_PID_neutrons == 1)
                                                     & (TPC3_dEdx *1.18 > 500.0)
                                                     & (TPC3_npoints > 40)
-                                                    & (TPC3_length > 2000.0)
+                                                    & (TPC3_length > 2500.0)
                                                     )]
                                          ])
 
@@ -509,7 +509,7 @@ def neutron_angles_data(datapath):
                                                       (TPC3_PID_neutrons == 1)
                                                     & (TPC3_dEdx *1.18 > 500.0)
                                                     & (TPC3_npoints > 40)
-                                                    & (TPC3_length > 2000.0)
+                                                    & (TPC3_length > 2500.0)
                                                     )]
                                          ])
 
@@ -518,7 +518,7 @@ def neutron_angles_data(datapath):
                                                       (TPC4_PID_neutrons == 1)
                                                     & (TPC4_dEdx *1.64 > 500.0)
                                                     & (TPC4_npoints > 40)
-                                                    & (TPC4_length > 2000.0)
+                                                    & (TPC4_length > 2500.0)
                                                     )]
                                          ])
 
@@ -527,7 +527,7 @@ def neutron_angles_data(datapath):
                                                       (TPC4_PID_neutrons == 1)
                                                     & (TPC4_dEdx *1.64 > 500.0)
                                                     & (TPC4_npoints > 40)
-                                                    & (TPC4_length > 2000.0)
+                                                    & (TPC4_length > 2500.0)
                                                     )]
                                          ])
 
@@ -535,26 +535,26 @@ def neutron_angles_data(datapath):
     ch3_folded_phis = ch3_phis
     ch3_folded_thetas = ch3_thetas
 
-    ch3_folded_thetas[( (ch3_folded_phis < -90) )] *= -1
-    ch3_folded_thetas[( (ch3_folded_phis < -90) )] += 180
+    ch3_folded_thetas[( (ch3_folded_phis < -90) )] *= -1.0
+    ch3_folded_thetas[( (ch3_folded_phis < -90) )] += 180.0
 
-    ch3_folded_thetas[( (ch3_folded_phis > 90) )] *= -1
-    ch3_folded_thetas[( (ch3_folded_phis > 90) )] += 180
+    ch3_folded_thetas[( (ch3_folded_phis > 90) )] *= -1.0
+    ch3_folded_thetas[( (ch3_folded_phis > 90) )] += 180.0
 
-    ch3_folded_phis[( (ch3_folded_phis < -90) )] += 180
-    ch3_folded_phis[( (ch3_folded_phis > 90) )] -= 180
+    ch3_folded_phis[( (ch3_folded_phis < -90) )] += 180.0
+    ch3_folded_phis[( (ch3_folded_phis > 90) )] -= 180.0
 
     ch4_folded_phis = ch4_phis
     ch4_folded_thetas = ch4_thetas
 
-    ch4_folded_thetas[( (ch4_folded_phis < -90) )] *= -1
-    ch4_folded_thetas[( (ch4_folded_phis < -90) )] += 180
+    ch4_folded_thetas[( (ch4_folded_phis < -90) )] *= -1.0
+    ch4_folded_thetas[( (ch4_folded_phis < -90) )] += 180.0
 
-    ch4_folded_thetas[( (ch4_folded_phis > 90) )] *= -1
-    ch4_folded_thetas[( (ch4_folded_phis > 90) )] += 180
+    ch4_folded_thetas[( (ch4_folded_phis > 90) )] *= -1.0
+    ch4_folded_thetas[( (ch4_folded_phis > 90) )] += 180.0
 
-    ch4_folded_phis[( (ch4_folded_phis < -90) )] += 180
-    ch4_folded_phis[( (ch4_folded_phis > 90) )] -= 180
+    ch4_folded_phis[( (ch4_folded_phis < -90) )] += 180.0
+    ch4_folded_phis[( (ch4_folded_phis > 90) )] -= 180.0
 
     # Calculate BP vs non-BP arrays
     ch3_bp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis) < 20]
@@ -577,7 +577,7 @@ def neutron_angles_data(datapath):
     print('Ch4 number of bp events:', len(ch4_bp_thetas) )
     print('Ch4 number of nbp events:', len(ch4_nbp_thetas) )
 
-    return (ch3_thetas, ch4_thetas, ch3_phis, ch4_phis, ch3_bp_thetas,
+    return (ch3_folded_thetas, ch4_folded_thetas, ch3_folded_phis, ch4_folded_phis, ch3_bp_thetas,
             ch3_nbp_thetas, ch4_bp_thetas, ch4_nbp_thetas)
 
 def neutron_rate_raw_sim(datapath):
@@ -2653,7 +2653,7 @@ def neutron_study_sim(simpath):
               & (thetas > 0)
               & (thetas < 180)
               & (np.abs(phis) < 360)
-              & (tlengths > 2000)
+              & (tlengths > 2500)
             )
 
     ch3_sels = (
@@ -2666,7 +2666,7 @@ def neutron_study_sim(simpath):
               #& (thetas > 0)
               #& (thetas < 180)
               #& (np.abs(phis) < 360)
-              & (tlengths > 2000)
+              & (tlengths > 2500)
             )
 
     ch4_sels = (
@@ -2679,7 +2679,7 @@ def neutron_study_sim(simpath):
               #& (thetas > 0)
               #& (thetas < 180)
               #& (np.abs(phis) < 360)
-              & (tlengths > 2000)
+              & (tlengths > 2500)
             )
 
     #### Correct for theta and (phi) outside of 180 (360) degrees
@@ -2747,17 +2747,6 @@ def neutron_study_sim(simpath):
             bins=18,
             range=[-90,90] )
 
-    '''
-    print(ch3_phis[0])
-    print(ch4_phis[0])
-    print(ch3_thetas[0])
-    print(ch4_thetas[0])
-    print(ch3_bp_thetas[0])
-    print(ch4_bp_thetas[0])
-    print(ch3_nbp_thetas[0])
-    print(ch4_nbp_thetas[0])
-    '''
-    
     ch3_phis_touschek = folded_phis[( (ch3_sels) & (touschek==1) )]
     ch3_phis_beamgas = folded_phis[( (ch3_sels) & (beam_gas==1) )]
     ch3_phis_bks = [ch3_phis_touschek, ch3_phis_beamgas]
@@ -4782,7 +4771,6 @@ def compare_angles(datapath, simpath):
     print('Data angles:', len(data_angles[0]), len(data_angles[1]),
             len(data_angles[2]), len(data_angles[3]))
 
-    input('check here')
     theta_bins = 9
     phi_bins = 9
 
@@ -4797,17 +4785,19 @@ def compare_angles(datapath, simpath):
     print('SIM: Touschek: %i  BeamGas: %i' % (len(sim_angles[8][0]),
         len(sim_angles[8][1]) ) )
     print('DATA:', len(data_angles[0]))
-    ch3Theta_Touschek_hist = np.histogram(sim_angles[8][0], bins=9,
+
+    ch3Theta_Touschek_hist = np.histogram(sim_angles[8][0], bins=theta_bins,
             range=[0,180])
+
+    ch3Theta_BeamGas_hist = np.histogram(sim_angles[8][1], bins=theta_bins,
+            range=[0,180])
+
 
     ch3Theta_TouschekPDF = probfit.pdf.HistogramPdf(
                                 ch3Theta_Touschek_hist[0],
                                 binedges=ch3Theta_Touschek_hist[1]   
                                 )
     ch3Theta_TouschekPDF = probfit.Extended(ch3Theta_TouschekPDF)
-
-    ch3Theta_BeamGas_hist = np.histogram(sim_angles[8][1], bins=9,
-            range=[0,180])
 
     # Check histogram bins
     ch3Theta_BeamGasPDF = probfit.pdf.HistogramPdf(
@@ -4826,7 +4816,7 @@ def compare_angles(datapath, simpath):
                                        #    sim_angles[8][1]]),
                                        data_angles[0],
                                        #bins=ch3Theta_Touschek_hist[1],
-                                       bins=9,bound=(0,180),
+                                       bins=theta_bins,bound=(0,180),
                                        )
 
     ch3Theta_minu = iminuit.Minuit(ch3Theta_chi2)
@@ -4834,7 +4824,17 @@ def compare_angles(datapath, simpath):
     parameters = ch3Theta_minu.values
     ch3Theta_chi2.draw(parts=True, print_par=False)
     ((data_edges, data_y), (errorp,errorm), (total_pdf_x, total_pdf_y), parts) = (
-            ch3Theta_chi2.draw(parts=True, print_par=False, no_plot=True))
+            ch3Theta_chi2.draw(parts=True, print_par=False,
+                #no_plot=True
+                )
+            )
+
+    #del data_edges
+    #data_edges = np.histogram(data_angles[0], bins = theta_bins, range=[0, 180])[1]
+
+    print('Min of thetas:', np.min(data_angles[0]) )
+    print('Max of thetas:', np.max(data_angles[0]) )
+
 
     data_x = 0.5 * (data_edges[:-1] + data_edges[1:])
 
@@ -4844,9 +4844,9 @@ def compare_angles(datapath, simpath):
     plt.show()
 
     ### Use ROOT TFractionFitter to fit low statistics MC histograms to data
-    h_bg3 = r.TH1F('h_bg3', 'h_bg3', 9, 0.0, 180)
-    h_t3 = r.TH1F('h_t3', 'h_t3', 9, 0.0, 180)
-    h_d3 = r.TH1F('h_d3', 'h_d3', 9, 0.0, 180)
+    h_bg3 = r.TH1F('h_bg3', 'h_bg3', theta_bins, 0.0, 180)
+    h_t3 = r.TH1F('h_t3', 'h_t3', theta_bins, 0.0, 180)
+    h_d3 = r.TH1F('h_d3', 'h_d3', theta_bins, 0.0, 180)
 
     for theta in sim_angles[8][1] :
         h_bg3.Fill(theta)
@@ -4900,20 +4900,11 @@ def compare_angles(datapath, simpath):
     t_frac3, t_frac3_err = r.Double(), r.Double()
     fit.GetResult(1, t_frac3, t_frac3_err)
     print(t_frac3, t_frac3_err)
-    input('well?')
-
-    #result = fit.GetPlot()
-    #np_result = hist2array(result)
-    #print(np_result)
-
-    #h_d3.Draw('Ep')
-    #result.Draw('same')
-    #input('well?')
 
     # Plot sum of Touschek and beam gas obtained from histogram PDF
-    sum_hists = (ch3Theta_Touschek_hist[0] + ch3Theta_BeamGas_hist[0])
-    sum_norm = np.sum(sum_hists)
-    sum_fitted_norm = parameters['TouschekN'] + parameters['BeamGasN']
+    #sum_hists = (ch3Theta_Touschek_hist[0] + ch3Theta_BeamGas_hist[0])
+    #sum_norm = np.sum(sum_hists)
+    #sum_fitted_norm = parameters['TouschekN'] + parameters['BeamGasN']
 
     #plt.hist(thetas,
     #        weights=sum_hists*sum_fitted_norm/sum_norm,
@@ -4954,9 +4945,9 @@ def compare_angles(datapath, simpath):
     f.savefig('ch3_theta_TFractionFitter.pdf')
     plt.show()
 
-    h_bg4 = r.TH1F('h_bg4', 'h_bg4', 9, 0.0, 180)
-    h_t4 = r.TH1F('h_t4', 'h_t4', 9, 0.0, 180)
-    h_d4 = r.TH1F('h_d4', 'h_d4', 9, 0.0, 180)
+    h_bg4 = r.TH1F('h_bg4', 'h_bg4', theta_bins, 0.0, 180)
+    h_t4 = r.TH1F('h_t4', 'h_t4', theta_bins, 0.0, 180)
+    h_d4 = r.TH1F('h_d4', 'h_d4', theta_bins, 0.0, 180)
 
     for theta in sim_angles[9][1] :
         h_bg4.Fill(theta)
@@ -4971,7 +4962,7 @@ def compare_angles(datapath, simpath):
     for theta in data_angles[1]:
         h_d4.Fill(theta)
 
-    test = hist2array(h_d3)
+    test = hist2array(h_d4)
     print('Printing data histo:\n', test)
 
     f = TFile('ch4_histos.root', 'RECREATE')
@@ -4993,17 +4984,25 @@ def compare_angles(datapath, simpath):
 
     fit.Fit()
 
-    input('well?')
     fit.ErrorAnalysis(0.00001)
 
     print(fit.GetChisquare())
-
-    input('well?')
 
     result = fit.GetPlot()
 
     test = hist2array(result)
     print('Printing result histo:\n', test)
+    print()
+
+
+    ### Use Kolmogorov test &  check the compatibility in shape between T and BG
+    K3 = h_t3.KolmogorovTest(h_bg3)
+    K4 = h_t4.KolmogorovTest(h_bg4)
+
+    print('\nKolmogorov test for TPC 3 bkgs:', K3)
+    print('Kolmogorov test for TPC 4 bkgs:', K4)
+    input('well?')
+
 
     fitted_yield = result.Integral()
 
@@ -5020,7 +5019,7 @@ def compare_angles(datapath, simpath):
     print('Touschek: %i  BeamGas: %i' % (len(sim_angles[9][0]),
         len(sim_angles[9][1]) ) )
     print('DATA:', len(data_angles[1]))
-    ch4Theta_Touschek_hist = np.histogram(sim_angles[9][0], bins=9,
+    ch4Theta_Touschek_hist = np.histogram(sim_angles[9][0], bins=theta_bins,
             range=[0,180])
 
     ch4Theta_TouschekPDF = probfit.pdf.HistogramPdf(
@@ -5029,7 +5028,7 @@ def compare_angles(datapath, simpath):
                                 )
     ch4Theta_TouschekPDF = probfit.Extended(ch4Theta_TouschekPDF)
 
-    ch4Theta_BeamGas_hist = np.histogram(sim_angles[9][1], bins=9,
+    ch4Theta_BeamGas_hist = np.histogram(sim_angles[9][1], bins=theta_bins,
             range=[0,180])
 
     ch4Theta_BeamGasPDF = probfit.pdf.HistogramPdf(
@@ -5047,7 +5046,7 @@ def compare_angles(datapath, simpath):
                                        #np.concatenate([sim_angles[9][0],
                                        #    sim_angles[9][1]]),
                                        data_angles[1],
-                                       bins=9,bound=(0,180),
+                                       bins=theta_bins,bound=(0,180),
                                        )
 
     ch4Theta_minu = iminuit.Minuit(ch4Theta_chi2)
@@ -5917,7 +5916,10 @@ def fit_study(datapath):
         infile = datapath + file 
     #for name in names:
     #    infile = datapath + name + str('.root')
-        if '10hr' not in file : continue
+        #if '10hr' not in file : continue
+
+        ### For 100hrs sim
+        if '10hrs' not in file : continue
         print(infile)
         try : 
             data = root2rec(infile)
@@ -6004,6 +6006,14 @@ def fit_study(datapath):
     folded_theta_errs = np.abs(folded_thetas - folded_truth_thetas)
     folded_theta_errs[folded_theta_errs > 90] =  (180.0 - 
             folded_theta_errs[folded_theta_errs > 90] )
+
+    print('Printing number of events to be obtained by loosening tlength cut...')
+    print('Number of events with tlength larger than 2mm:',
+            len(tlengths[((angle_sels) & (tlengths>2000.0))]) )
+    print('Number of events of any tlength', len(tlengths[angle_sels]) )
+    print('***************************************************************')
+    print()
+    
 
     from collections import Counter
     c = Counter(pdg[angle_sels])
@@ -6194,6 +6204,12 @@ def fit_study(datapath):
     print('Number of wild phi errs: (greater than 20 degrees)',
             len(np.where(folded_phi_errs[angle_sels] > 20)[0]))
 
+    #import seaborn as sns
+    #cc = plt.figure()
+    #ax15 = cc.add_subplot(111)
+    #sns.jointplot(x=tlengths[angle_sels], y=folded_phi_errs[angle_sels],
+    #        xlim=[plt.xlim()[0], 2000])
+
     plt.show()
 
 def cut_study(simpath, datapath):
@@ -6221,7 +6237,7 @@ def cut_study(simpath, datapath):
     bcids = []
 
     for file in os.listdir(simpath):
-        if file == 'old_ver_noLER' : continue
+        if file == 'old_ver_noLER': continue
         #if 'HER' in file : continue
         infile = simpath + file 
         print(infile)
@@ -6229,6 +6245,7 @@ def cut_study(simpath, datapath):
            data = root2rec(infile)
         except :
             print('\nFile %s is empty.  Continuing ...\n' % (infile) )
+            continue
         sumQ = np.concatenate([sumQ, (data.e_sum)])
         tlengths = np.concatenate([tlengths, (data.t_length)])
         thetas = np.concatenate([thetas, (data.theta)])
@@ -6761,6 +6778,8 @@ def cut_study(simpath, datapath):
         plotname= 'cuts_edgecode_v41.pdf'
     elif 'v5.2' in simpath :
         plotname = 'cuts_edgecode_v52.pdf'
+    elif 'v5.X_100hr_neutrons' in simpath :
+        plotname = 'cuts_edgecode_100hrs.pdf'
     e.savefig(plotname)
 
     ### Show dQ/dx distribution for events passing edge_cut
@@ -6782,6 +6801,8 @@ def cut_study(simpath, datapath):
         plotname = 'cuts_dQdx_zoomed_v41.pdf'
     elif 'v5.2' in simpath:
         plotname = 'cuts_dQdx_zoomed_v52.pdf'
+    elif 'v5.X_100hr_neutrons' in simpath :
+        plotname = 'cuts_dQdx_zoomed_100hrs.pdf'
     f.savefig(plotname)
 
     # Unzoomed
@@ -6804,6 +6825,8 @@ def cut_study(simpath, datapath):
         plotname = 'cuts_dQdx_v41.pdf'
     elif 'v5.2' in simpath :
         plotname = 'cuts_dQdx_v52.pdf'
+    elif 'v5.X_100hr_neutrons' in simpath :
+        plotname = 'cuts_dQdx_100hrs.pdf'
     g.savefig(plotname)
 
 
@@ -6822,6 +6845,8 @@ def cut_study(simpath, datapath):
         plotname = 'cuts_npoints_zoomed_v41.pdf'
     elif 'v5.2' in simpath :
         plotname = 'cuts_npoints_zoomed_v52.pdf'
+    elif 'v5.X_100hr_neutrons' in simpath :
+        plotname = 'cuts_npoints_zoomed_100hrs.pdf'
     h.savefig(plotname)
 
     # Unzoomed
@@ -6845,6 +6870,8 @@ def cut_study(simpath, datapath):
         plotname = 'cuts_npoints_v41.pdf'
     elif 'v5.2' in simpath:
         plotname = 'cuts_npoints_v52.pdf'
+    elif 'v5.X_100hr_neutrons' in simpath :
+        plotname = 'cuts_npoints_100hrs.pdf'
     l.savefig(plotname)
 
     m = plt.figure()
@@ -6868,6 +6895,8 @@ def cut_study(simpath, datapath):
         plotname = 'cuts_dQdx_vs_npoints_v41.pdf'
     elif 'v5.2' in simpath:
         plotname = 'cuts_dQdx_vs_npoints_v52.pdf'
+    elif 'v5.X_100hr_neutrons' in simpath :
+        plotname = 'cuts_dQdx_vs_npoints_100hrs.pdf'
     m.savefig(plotname)
 
     p = plt.figure()
@@ -6891,6 +6920,8 @@ def cut_study(simpath, datapath):
         plotname = 'cuts_dQdx_vs_npoints_v41_zoomed.pdf'
     elif 'v5.2' in simpath:
         plotname = 'cuts_dQdx_vs_npoints_v52_zoomed.pdf'
+    elif 'v5.X_100hr_neutrons' in simpath :
+        plotname = 'cuts_dQdx_vs_npoints_100hrs_zoomed.pdf'
     p.savefig(plotname)
 
     #surviving_protons
@@ -6932,7 +6963,8 @@ def cut_study(simpath, datapath):
         plotname = 'tlength_vs_Erecoil_v41.pdf'
     elif 'v5.2' in simpath:
         plotname = 'tlength_vs_Erecoil_v52_and_data.pdf'
-    plotname = 'tlength_vs_Erecoil_v52_and_data.pdf'
+    elif 'v5.X_100hr_neutrons' in simpath :
+        plotname = 'tlength_vs_Erecoil_100hrs_and_data.pdf'
     o.savefig(plotname)
 
     o = plt.figure()
@@ -6960,7 +6992,13 @@ def cut_study(simpath, datapath):
     ax7.set_ylim(plt.ylim()[0], 0.5E8)
     ax7.set_ylabel('Detected Charge [e]', ha='right', y=1.0)
     ax7.legend(loc='best')
-    plotname = 'tlength_vs_Erecoil_v52_and_data_zoomed.pdf'
+
+    if 'v4.1' in simpath:
+        plotname = 'tlength_vs_Erecoil_v41.pdf'
+    elif 'v5.2' in simpath:
+        plotname = 'tlength_vs_Erecoil_v52_and_data.pdf'
+    elif 'v5.X_100hr_neutrons' in simpath :
+        plotname = 'tlength_vs_Erecoil_100hrs_and_data.pdf'
     o.savefig(plotname)
 
     plt.show()
@@ -7769,10 +7807,13 @@ def main():
     #v54_simpath = '/Users/BEASTzilla/BEAST/sim/v5.4/QGSP_BERT_HP/'
     v54_simpath = '/Users/BEASTzilla/BEAST/sim/v5.4/FTFP_BERT_HP/'
 
+    v100hrs_simpath = '/Users/BEASTzilla/BEAST/sim/sim_refitter/v5.X_100hr_neutrons/FTFP_BERT_HP/'
+
     inpath = str(home) + '/BEAST/data/TPC/tpc_toushekrun/2016-05-29/'
 
     #compare_toushek(v31_datapath, v54_simpath)
-    compare_angles(v31_datapath, v52_simpath)
+    #compare_angles(v31_datapath, v52_simpath)
+
     ##rate_vs_beamsize(datapath)
     #sim_rate_vs_beamsize(simpath)
 
@@ -7789,7 +7830,10 @@ def main():
 
     #cut_study_data(inpath) 
     #fit_study(v52_simpath)
+    fit_study(v100hrs_simpath)
+
     #cut_study(v52_simpath, inpath)
+    #cut_study(v100hrs_simpath, inpath)
 
     #energy_cal(v50_simpath, inpath)
 
