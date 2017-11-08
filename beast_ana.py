@@ -39,8 +39,6 @@ elif root_style == False :
 
 ###############################################################################
 
-
-
 # Get run names for various studies
 def run_names(run_name):
     LER_Beamsize = []
@@ -218,12 +216,12 @@ def neutron_rate_data(datapath):
             ch3 = TPC3_PID_neutrons[(
                                     (TPC3_dEdx * 1.18 > 500.0)
                                     & (TPC3_npoints > 40)
-                                    & (TPC3_length > 2000)
+                                    & (TPC3_length > global_tl)
                                     )].sum()/len(data[data.subrun == i])
             ch4 = TPC4_PID_neutrons[(
                                     (TPC4_dEdx * 1.64 > 500.0)
                                     & (TPC4_npoints > 40)
-                                    & (TPC4_length > 2000)
+                                    & (TPC4_length > global_tl)
                                     )].sum()/len(data[data.subrun == i])
             lengths.append(len(data[data.subrun == i]))
 
@@ -332,7 +330,7 @@ def neutron_angles_data(datapath):
                                                       (TPC3_PID_neutrons == 1)
                                                     & (TPC3_dEdx *1.18 > 500.0)
                                                     & (TPC3_npoints > 40)
-                                                    & (TPC3_length > 2500.0)
+                                                    & (TPC3_length > global_tl)
                                                     )]
                                          ])
 
@@ -341,7 +339,7 @@ def neutron_angles_data(datapath):
                                                       (TPC3_PID_neutrons == 1)
                                                     & (TPC3_dEdx *1.18 > 500.0)
                                                     & (TPC3_npoints > 40)
-                                                    & (TPC3_length > 2500.0)
+                                                    & (TPC3_length > global_tl)
                                                     )]
                                          ])
 
@@ -350,7 +348,7 @@ def neutron_angles_data(datapath):
                                                       (TPC4_PID_neutrons == 1)
                                                     & (TPC4_dEdx *1.64 > 500.0)
                                                     & (TPC4_npoints > 40)
-                                                    & (TPC4_length > 2500.0)
+                                                    & (TPC4_length > global_tl)
                                                     )]
                                          ])
 
@@ -359,7 +357,7 @@ def neutron_angles_data(datapath):
                                                       (TPC4_PID_neutrons == 1)
                                                     & (TPC4_dEdx *1.64 > 500.0)
                                                     & (TPC4_npoints > 40)
-                                                    & (TPC4_length > 2500.0)
+                                                    & (TPC4_length > global_tl)
                                                     )]
                                          ])
 
@@ -518,802 +516,6 @@ def neutron_rate_sim(datapath):
     return ch3_rate, ch3_errs, ch4_rate, ch4_errs
 
 
-# Study neutron angular distributions
-def neutron_study(datapath):
-    tpc3_phis = []
-    tpc3_thetas = []
-    tpc3_energies = []
-    tpc3_energies_bp = []
-    tpc3_energies_notbp = []
-    tpc3_sumtot = []
-    tpc3_sumtot_bp = []
-    tpc3_sumtot_notbp = []
-    tpc3_tlengths = []
-    tpc3_tlengths_bp = []
-    tpc3_tlengths_notbp = []
-    tpc3_thetas_beampipe = []
-    tpc3_thetas_notbp = []
-
-    tpc4_phis = []
-    tpc4_thetas = []
-    tpc4_energies = []
-    tpc4_energies_bp = []
-    tpc4_energies_notbp = []
-    tpc4_sumtot_bp = []
-    tpc4_sumtot_notbp = []
-    tpc4_sumtot = []
-    tpc4_tlengths = []
-    tpc4_tlengths_bp = []
-    tpc4_tlengths_notbp = []
-    tpc4_thetas_beampipe = []
-    tpc4_thetas_notbp = []
-
-    beamsize = []
-
-    runs = run_names('LER_ToushekTPC')
-    #runs = run_names('HER_ToushekTPC')
-    neutrons = 0
-
-    ### Looping over many files
-    for f in os.listdir(datapath):
-        #if '.root' not in f: continue
-        if f not in runs: continue
-        ifile = datapath
-        ifile += f
-
-        rfile = TFile(ifile)
-        tree = rfile.Get('tout')
-        test = str(tree)
-        if (test == '<ROOT.TObject object at 0x(nil)>' or tree.GetEntries() == 
-                0): continue
-
-        print(ifile)
-
-        data = root2rec(ifile)
-
-        counter_3 = 0
-        counter_4 = 0
-
-        max_theta = 180.
-        min_theta = 0.
-        for event in data:
-            if ('TPC3_PID_neutrons' in event.dtype.names):
-                tpc3_neutrons = event.TPC3_PID_neutrons
-            else : continue
-
-            for i in range(len(tpc3_neutrons)):
-                if tpc3_neutrons[i] == 1 and event.TPC3_npoints[i] > 20 :
-                    phi = event.TPC3_phi[i]
-                    theta = event.TPC3_theta[i]
-
-                    ### Check if theta and phi values are absurdly wrong
-                    if abs(phi) > 720. or abs(theta) > 720.: continue
-
-                    if event.TPC3_dEdx[i] < 0.15 :
-                        #print('Is event in TPC3 a nutron?', tpc3_neutrons[i])
-                        #print('dE/dx =', event.TPC3_dEdx[i])
-                        #print('npoints = ', event.TPC3_npoints[i])
-                        #print('cols = ', event.TPC3_hits_col)
-                        #track = Hist2D(80, 1, 80, 336, 1, 336)
-                        #for k in range(event.TPC3_npoints[i]):
-                        #    track.Fill(event.TPC3_hits_col[k], 
-                        #            event.TPC3_hits_row[k], 
-                        #            event.TPC3_hits_tot[k])
-                        #track.Draw('COLZ')
-                        #input('well?')
-                        continue
-
-                    neutrons += 1
-
-                    if phi < -360. : phi += 360.
-                    elif phi > 360. : phi -= 360.
-
-                    if theta < -360. : theta += 360.
-                    elif theta > 360. : theta -= 360.
-
-                    if phi < -90. :
-                        phi += 180.
-                        theta *= -1.
-                        theta += 180.
-
-                    elif phi > 90.:
-                        phi -= 180.
-                        theta *= -1.
-                        theta += 180.
-                        
-                    if theta < 0. : theta += 180.
-                    elif theta > 180. : theta -= 180.
-
-                    tpc3_thetas.append(theta)
-                    tpc3_phis.append(phi)
-
-                    tpc3_energies.append(event.TPC3_sumQ[i])
-                    tpc3_sumtot.append(event.TPC3_sumTOT[i])
-                    tpc3_tlengths.append(event.TPC3_sumTOT[i]/event.TPC3_dEdx[i])
-
-                    ### Select beampipe (+- 20 degrees)
-                    if abs(phi) < 20.:
-                        tpc3_thetas_beampipe.append(theta)
-                        tpc3_energies_bp.append(event.TPC3_sumQ[i])
-                        tpc3_sumtot_bp.append(event.TPC3_sumTOT[i])
-                        tpc3_tlengths_bp.append(event.TPC3_sumTOT[i]/event.TPC3_dEdx[i])
-                    elif abs(phi) > 40.:
-                        tpc3_thetas_notbp.append(theta)
-                        tpc3_energies_notbp.append(event.TPC3_sumQ[i])
-                        tpc3_sumtot_notbp.append(event.TPC3_sumTOT[i])
-                        tpc3_tlengths_notbp.append(event.TPC3_sumTOT[i]/event.TPC3_dEdx[i])
-
-
-            if ('TPC4_PID_neutrons' in event.dtype.names):
-                tpc4_neutrons = event.TPC4_PID_neutrons
-            else : continue
-
-            for j in range(len(tpc4_neutrons)):
-                if tpc4_neutrons[j] == 1 and event.TPC4_npoints[j] > 20 :
-
-                    phi = event.TPC4_phi[j]
-                    theta = event.TPC4_theta[j]
-
-                    ### Check if theta and phi values are absurdly wrong
-                    if abs(phi) > 720. or abs(theta) > 720.: continue
-
-                    if event.TPC4_dEdx[j] < 0.15 :
-                        continue
-                    
-                    neutrons += 1
-
-                    if phi < -360. : phi += 360.
-                    elif phi > 360. : phi -= 360.
-
-                    if theta < -360. : theta += 360.
-                    elif theta > 360. : theta -= 360.
-
-                    if phi < -90. :
-                        phi += 180.
-                        theta *= -1.
-                        theta += 180.
-
-                    elif phi > 90.:
-                        phi -= 180.
-                        theta *= -1.
-                        theta += 180.
-
-                    if theta < 0. : theta += 180.
-                    elif theta > 180. : theta -= 180.
-
-
-                    tpc4_phis.append(phi)
-                    tpc4_thetas.append(theta)
-
-                    tpc4_energies.append(event.TPC4_sumQ[j])
-                    tpc4_sumtot.append(event.TPC4_sumTOT[j])
-                    tpc4_tlengths.append(event.TPC4_sumTOT[j]/event.TPC4_dEdx[j])
-
-                    ### Select beampipe (+- 20 degrees)
-                    if abs(phi) < 20.:
-                        tpc4_thetas_beampipe.append(theta)
-                        tpc4_energies_bp.append(event.TPC4_sumQ[j])
-                        tpc4_sumtot_bp.append(event.TPC4_sumTOT[j])
-                        tpc4_tlengths_bp.append(event.TPC4_sumTOT[j]/event.TPC4_dEdx[j])
-                    elif abs(phi) > 40.:
-                        tpc4_thetas_notbp.append(theta)
-                        tpc4_energies_notbp.append(event.TPC4_sumQ[j])
-                        tpc4_sumtot_notbp.append(event.TPC4_sumTOT[j])
-                        tpc4_tlengths_notbp.append(event.TPC4_sumTOT[j]/event.TPC4_dEdx[j])
-
-    tpc3phi_array = np.array(tpc3_phis)
-    tpc3theta_array = np.array(tpc3_thetas)
-    tpc3_sumtot_array = np.array(tpc3_sumtot)
-    tpc3_sumtot_array_bp = np.array(tpc3_sumtot_bp)
-    tpc3_sumtot_array_notbp = np.array(tpc3_sumtot_notbp)
-    tpc3_energies_array = np.array(tpc3_energies)
-    tpc3_energies_array_bp = np.array(tpc3_energies_bp)
-    tpc3_energies_array_notbp = np.array(tpc3_energies_notbp)
-    tpc3_tlengths_array = np.array(tpc3_tlengths)
-    tpc3_tlengths_array_bp = np.array(tpc3_tlengths_bp)
-    tpc3_tlengths_array_notbp = np.array(tpc3_tlengths_notbp)
-    tpc3theta_array_beampipe = np.array(tpc3_thetas_beampipe)
-    tpc3theta_array_notbp = np.array(tpc3_thetas_notbp)
-
-    tpc4theta_array = np.array(tpc4_thetas)
-    tpc4phi_array = np.array(tpc4_phis)
-    tpc4_sumtot_array = np.array(tpc4_sumtot)
-    tpc4_sumtot_array_bp = np.array(tpc4_sumtot_bp)
-    tpc4_sumtot_array_notbp = np.array(tpc4_sumtot_notbp)
-    tpc4_energies_array = np.array(tpc4_energies)
-    tpc4_energies_array_bp = np.array(tpc4_energies_bp)
-    tpc4_energies_array_notbp = np.array(tpc4_energies_notbp)
-    tpc4_tlengths_array = np.array(tpc4_tlengths)
-    tpc4_tlengths_array_bp = np.array(tpc4_tlengths_bp)
-    tpc4_tlengths_array_notbp = np.array(tpc4_tlengths_notbp)
-    tpc4theta_array_beampipe = np.array(tpc4_thetas_beampipe)
-    tpc4theta_array_notbp = np.array(tpc4_thetas_notbp)
-
-    beamsize = np.array(beamsize)
-
-    phi_bins = 20
-    theta_bins = 18
-
-    print('Number of neutrons:')
-    print('TPC3:', len(tpc3phi_array))
-    print('TPC4:', len(tpc4phi_array))
-    print('Total:', neutrons)
-    print('Check:', len(tpc3phi_array) + len(tpc4phi_array))
-    print('\nBeampipe cut:')
-    print('TPC3:', len(tpc3theta_array_beampipe))
-    print('TPC4:', len(tpc4theta_array_beampipe))
-    print('\nOutside Beampipe:')
-    print('TPC3:', len(tpc3theta_array_notbp))
-    print('TPC4:', len(tpc4theta_array_notbp))
-    input('well?')
-
-    ### Begin plotting
-    if root_style == True :
-        color = 'black'
-        facecolor=None
-    elif root_style == False :
-        sns.set(color_codes=True)
-        color = None
-
-    ### Plot all figures individually
-    plt.hist(tpc3phi_array, phi_bins, range=[-100,100], weights = 
-            tpc3_energies_array, color = color, histtype='step')
-    plt.xlabel('$\phi$ ($^{\circ}$)')
-    plt.ylabel('Events per bin')
-    #plt.title('TPC3 Energy Weighted Neutron Recoil $\phi$')
-    plt.savefig('tpc3_phi_weighted.pdf')
-    plt.show()
-
-    plt.hist(tpc3phi_array, phi_bins, range=[-100,100],
-            color = color, histtype='step')
-    plt.xlabel('$\phi$ ($^{\circ}$)')
-    plt.ylabel('Events per bin')
-    #plt.title('TPC3 Neutron Recoil $\phi$')
-    plt.savefig('tpc3_phi_unweighted.pdf')
-    plt.show()
-
-    plt.hist(tpc4phi_array, phi_bins, range=[-100,100], weights = 
-            tpc4_energies_array, color = color, histtype='step')
-    plt.xlabel('$\phi$ ($^{\circ}$)')
-    plt.ylabel('Events per bin')
-    #plt.title('TPC4 Energy Weighted Neutron Recoil $\phi$')
-    plt.savefig('tpc4_phi_weighted.pdf')
-    plt.show()
-
-    plt.hist(tpc4phi_array, phi_bins, range=[-100,100],
-            color = color, histtype='step')
-    plt.xlabel('$\phi$ ($^{\circ}$)')
-    plt.ylabel('Events per bin')
-    #plt.title('TPC4 Neutron Recoil $\phi$')
-    plt.savefig('tpc4_phi_unweighted.pdf')
-    plt.show()
-
-    plt.hist(tpc3theta_array, theta_bins, weights = tpc3_energies_array,
-            color = color, histtype='step')
-    plt.xlabel('$\\theta$ ($^{\circ}$)')
-    plt.ylabel('Events per bin')
-    #plt.title('TPC3 Energy Weighted Neutron Recoil $\\theta$')
-    plt.savefig('tpc3_theta_weighted.pdf')
-    plt.show()
-
-    plt.hist(tpc3theta_array, theta_bins, 
-            color = color, histtype='step')
-    plt.xlabel('$\\theta$ ($^{\circ}$)')
-    plt.ylabel('Events per bin')
-    #plt.title('TPC3 Neutron Recoil $\\theta$')
-    plt.savefig('tpc3_theta_unweighted.pdf')
-    plt.show()
-
-    plt.hist(tpc4theta_array, theta_bins, weights = tpc4_energies_array,
-            color = color, histtype='step')
-    plt.xlabel('$\\theta$ ($^{\circ}$)')
-    plt.ylabel('Events per bin')
-    #plt.title('TPC4 Energy Weighted Neutron Recoil $\\theta$')
-    plt.savefig('tpc4_theta_weighted.pdf')
-    plt.show()
-
-    plt.hist(tpc4theta_array, theta_bins, color = color, histtype='step')
-    plt.xlabel('$\\theta$ ($^{\circ}$)')
-    plt.ylabel('Events per bin')
-    #plt.title('TPC4 Neutron Recoil $\\theta$')
-    plt.savefig('tpc4_theta_unweighted.pdf')
-    plt.show()
-
-    plt.hist(tpc3theta_array_beampipe, theta_bins, color = color, histtype='step')
-    plt.xlabel('$\\theta$ ($^{\circ}$)')
-    plt.ylabel('Events per bin')
-    plt.savefig('tpc3_theta_unweighted_bp.pdf')
-    plt.show()
-
-    plt.hist(tpc4theta_array_beampipe, theta_bins, color = color, histtype='step')
-    plt.xlabel('$\\theta$ ($^{\circ}$)')
-    plt.ylabel('Events per bin')
-    plt.savefig('tpc4_theta_unweighted_bp.pdf')
-    plt.show()
-
-    plt.hist(tpc3theta_array_notbp, theta_bins, color = color, histtype='step')
-    plt.xlabel('$\\theta$ ($^{\circ}$)')
-    plt.ylabel('Events per bin')
-    plt.savefig('tpc3_theta_unweighted_nbp.pdf')
-    plt.show()
-
-    plt.hist(tpc4theta_array_notbp, theta_bins, color = color, histtype='step')
-    plt.xlabel('$\\theta$ ($^{\circ}$)')
-    plt.ylabel('Events per bin')
-    plt.savefig('tpc4_theta_unweighted_nbp.pdf')
-    plt.show()
-
-    plt.scatter(tpc3_tlengths_array, tpc3_energies_array, color = color)
-    #plt.set_title('TPC 3 Track Length vs Sum Q')
-    plt.ylabel('Detected Charge (q)')
-    plt.xlabel('$\mu$m')
-    plt.xlim(-5000., 35000.)
-    plt.ylim(-1E7, 7E7)
-    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-    plt.savefig('tpc3_dedx_all.pdf')
-    plt.show()
-
-    plt.scatter(tpc4_tlengths_array, tpc4_energies_array, color = color)
-    #plt.set_title('TPC 4 Track Length vs Sum Q')
-    plt.ylabel('Detected Charge (q)')
-    plt.xlabel('$\mu$m')
-    plt.xlim(-5000., 35000.)
-    plt.ylim(-1E7, 7E7)
-    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-    plt.savefig('tpc4_dedx_all.pdf')
-    plt.show()
-    
-    plt.scatter(tpc3_tlengths_array_bp, tpc3_energies_array_bp, color = color)
-    #plt.set_title('TPC 3 Track Length vs Sum Q (beampipe)')
-    plt.xlim(-5000., 35000.)
-    plt.ylim(-1E7, 7E7)
-    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-    plt.ylabel('Detected Charge (q)')
-    plt.xlabel('$\mu$m')
-    plt.savefig('tpc3_dedx_bp.pdf')
-    plt.show()
-
-    plt.scatter(tpc3_tlengths_array_notbp, tpc3_energies_array_notbp, color = color)
-    plt.xlim(-5000., 35000.)
-    plt.ylim(-1E7, 7E7)
-    plt.xlabel('$\mu$m')
-    plt.ylabel('Detected Charge (q)')
-    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-    plt.savefig('tpc3_dedx_nbp.pdf')
-    plt.show()
-
-    plt.scatter(tpc4_tlengths_array_bp, tpc4_energies_array_bp, color = color)
-    plt.xlim(-5000., 35000.)
-    plt.ylim(-1E7, 7E7)
-    plt.ylabel('Detected Charge (q)')
-    plt.xlabel('$\mu$m')
-    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-    plt.savefig('tpc4_dedx_bp.pdf')
-    plt.show()
-
-    plt.scatter(tpc4_tlengths_array_notbp, tpc4_energies_array_notbp, color = color)
-    plt.xlim(-5000., 35000.)
-    plt.ylim(-1E7, 7E7)
-    plt.ylabel('Detected Charge (q)')
-    plt.xlabel('$\mu$m')
-    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-    plt.savefig('tpc4_dedx_nbp.pdf')
-    plt.show()
-
-    plt.scatter(tpc3_energies_array, tpc3phi_array, color = color)
-    plt.xlabel('Detected Charge (q)')
-    plt.ylabel('$\phi$ ($^{\circ}$)')
-    plt.ylim(-100.0,100.0)
-    plt.savefig('tpc3_evsphi_scatter.pdf')
-    plt.show()
-
-    plt.hist2d(tpc3_energies_array, tpc3phi_array, bins=(25,phi_bins))
-    plt.xlabel('Detected Charge (q)')
-    plt.ylabel('$\phi$ ($^{\circ}$)')
-    plt.ylim(-100.0,100.0)
-    plt.colorbar()
-    plt.savefig('tpc3_evsphi_heatmap.pdf')
-    plt.show()
-
-    plt.scatter(tpc3_energies_array, tpc3theta_array, color = color)
-    plt.xlabel('Detected Charge (q)')
-    plt.ylabel('$\\theta$ ($^{\circ}$)')
-    plt.ylim(0.,180.0)
-    plt.savefig('tpc3_evstheta_scatter.pdf')
-    plt.show()
-
-    plt.hist2d(tpc3_energies_array, tpc3theta_array, bins=(25,theta_bins))
-    plt.xlabel('Detected Charge (q)')
-    plt.ylabel('$\\theta$ ($^{\circ}$)')
-    plt.ylim(0.,180.0)
-    plt.colorbar()
-    plt.savefig('tpc3_evstheta_heatmap.pdf')
-    plt.show()
-
-    plt.scatter(tpc4_energies_array, tpc4phi_array, color = color)
-    plt.xlabel('Detected Charge (q)')
-    plt.ylabel('$\phi$ ($^{\circ}$)')
-    plt.ylim(-100.0,100.0)
-    plt.savefig('tpc4_evsphi_scatter.pdf')
-    plt.show()
-
-    plt.hist2d(tpc4_energies_array, tpc4phi_array, bins=(25,phi_bins))
-    plt.xlabel('Detected Charge (q)')
-    plt.ylabel('$\phi$ ($^{\circ}$)')
-    plt.ylim(-100.0,100.0)
-    plt.colorbar()
-    plt.savefig('tpc4_evsphi_heatmap.pdf')
-    plt.show()
-
-    plt.scatter(tpc4_energies_array, tpc4theta_array, color = color)
-    plt.xlabel('Detected Charge (q)')
-    plt.ylabel('$\\theta$ ($^{\circ}$)')
-    plt.ylim(0.,180.0)
-    plt.savefig('tpc4_evstheta_scatter.pdf')
-    plt.show()
-
-    plt.hist2d(tpc4_energies_array, tpc4theta_array, bins=(25,theta_bins))
-    plt.xlabel('Detected Charge (q)')
-    plt.ylabel('$\\theta$ ($^{\circ}$)')
-    plt.ylim(0.,180.0)
-    plt.colorbar()
-    plt.savefig('tpc4_evstheta_heatmap.pdf')
-    plt.show()
-
-    plt.scatter(tpc3phi_array, tpc3theta_array, color = color)
-    plt.xlabel('$\phi$ ($^{\circ}$)')
-    plt.ylabel('$\\theta$ ($^{\circ}$)')
-    plt.xlim(-100.0,100.0)
-    plt.ylim(0.,180.0)
-    plt.savefig('tpc3_thetavsphi_scatter.pdf')
-    plt.show()
-
-    plt.hist2d(tpc3phi_array, tpc3theta_array, bins=(phi_bins,theta_bins))
-    plt.xlabel('$\phi$ ($^{\circ}$)')
-    plt.ylabel('$\\theta$ ($^{\circ}$)')
-    plt.xlim(-100.0,100.0)
-    plt.ylim(0.,180.0)
-    plt.colorbar()
-    plt.savefig('tpc3_thetavsphi_heatmap.pdf')
-    plt.show()
-
-    plt.scatter(tpc4phi_array, tpc4theta_array, color = color)
-    plt.xlabel('$\phi$ ($^{\circ}$)')
-    plt.xlim(-100.0,100.0)
-    plt.ylabel('$\\theta$ ($^{\circ}$)')
-    plt.ylim(0.,180.0)
-    plt.savefig('tpc4_thetavsphi_scatter.pdf')
-    plt.show()
-
-    plt.hist2d(tpc4phi_array, tpc4theta_array, bins=(phi_bins,theta_bins))
-    plt.xlabel('$\phi$ ($^{\circ}$)')
-    plt.xlim(-100.0,100.0)
-    plt.ylabel('$\\theta$ ($^{\circ}$)')
-    plt.ylim(0.,180.0)
-    plt.colorbar()
-    plt.savefig('tpc4_thetavsphi_heatmap.pdf')
-    plt.show()
-
-    gain1 = 30.0
-    gain2 = 50.0
-    w = 35.075
-    tpc3_kev_array = tpc3_energies_array/(gain1 * gain2)*w*1E-3
-    tpc4_kev_array = tpc4_energies_array/(gain1 * gain2)*w*1E-3
-    tpc3_kev_array_bp = tpc3_energies_array_bp/(gain1 * gain2)*w*1E-3
-    tpc3_kev_array_notbp = tpc3_energies_array_notbp/(gain1 * gain2)*w*1E-3
-    tpc4_kev_array_bp = tpc4_energies_array_bp/(gain1 * gain2)*w*1E-3
-    tpc4_kev_array_notbp = tpc4_energies_array_notbp/(gain1 * gain2)*w*1E-3
-
-    plt.hist(tpc3_kev_array, bins=25, color=color, histtype='step')
-    plt.xlabel('Detected Energy (keV)')
-    plt.ylabel('Events per bin')
-    plt.xlim(0, 1600)
-    plt.yscale('log')
-    plt.ylim(0,4E2)
-    plt.savefig('tpc3_recoil_energies.pdf')
-    plt.show()
-
-    plt.hist(tpc3_kev_array_bp, bins=25, color=color, histtype='step')
-    plt.xlabel('Detected Energy (keV)')
-    plt.ylabel('Events per bin')
-    plt.xlim(0, 1600)
-    plt.yscale('log')
-    plt.ylim(0,4E2)
-    plt.savefig('tpc3_recoil_energies_bp.pdf')
-    plt.show()
-
-    plt.hist(tpc3_kev_array_notbp, bins=25, color=color, histtype='step')
-    plt.xlabel('Detected Energy (keV)')
-    plt.ylabel('Events per bin')
-    plt.xlim(0, 1600)
-    plt.yscale('log')
-    plt.ylim(0,4E2)
-    plt.savefig('tpc3_recoil_energies_notbp.pdf')
-    plt.show()
-
-    plt.hist(tpc4_kev_array_bp, bins=25, color=color, histtype='step')
-    plt.xlabel('Detected Energy (keV)')
-    plt.ylabel('Events per bin')
-    plt.xlim(0, 1600)
-    plt.yscale('log')
-    plt.ylim(0,4E2)
-    plt.savefig('tpc4_recoil_energies_bp.pdf')
-    plt.show()
-
-    plt.hist(tpc4_kev_array_notbp, bins=25, color=color, histtype='step')
-    plt.xlabel('Detected Energy (keV)')
-    plt.ylabel('Events per bin')
-    plt.xlim(0, 1600)
-    plt.yscale('log')
-    plt.ylim(0,4E2)
-    plt.savefig('tpc4_recoil_energies_notbp.pdf')
-    plt.show()
-
-    plt.hist(tpc4_kev_array, bins=25, color=color, histtype='step')
-    plt.xlabel('Detected Energy (keV)')
-    plt.ylabel('Events per bin')
-    plt.xlim(0, 1600)
-    plt.yscale('log')
-    plt.ylim(0,4E2)
-    plt.savefig('tpc4_recoil_energies.pdf')
-    plt.show()
-
-
-    ### Plot dE/dx
-    g, (bx1, bx2 ) = plt.subplots(1, 2, sharex=True, sharey=True)
-    bx1.scatter(tpc3_tlengths_array, tpc3_energies_array, color = color)
-    bx1.set_title('TPC 3 Track Length vs Sum Q')
-    bx1.set_ylabel('Sum Q')
-    bx1.set_xlabel('$\mu$m')
-    bx1.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-    bx2.scatter(tpc4_tlengths_array, tpc4_energies_array, color = color)
-    bx2.set_title('TPC 4 Track Length vs Sum Q')
-    bx2.set_xlabel('$\mu$m')
-    bx2.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-    
-    g, ((cx1, cx2), (cx3, cx4)) = plt.subplots(2, 2, sharex=True, sharey=True)
-    cx1.scatter(tpc3_tlengths_array_bp, tpc3_energies_array_bp, color = color)
-    cx1.set_title('TPC 3 Track Length vs Sum Q (beampipe)')
-    #cx1.set_xlim(-5000., 35000.)
-    cx1.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-    cx1.set_ylabel('Sum Q')
-    cx3.scatter(tpc3_tlengths_array_notbp, tpc3_energies_array_notbp,
-            color = color)
-    cx3.set_title('TPC 3 Track Length vs Sum Q (not beampipe)')
-    cx3.set_xlabel('$\mu$m')
-    cx3.set_ylabel('Sum Q')
-    cx2.scatter(tpc4_tlengths_array_bp, tpc4_energies_array_bp, color = color)
-    cx2.set_title('TPC 4 Track Length vs Sum Q (beampipe)')
-    cx2.set_xlim(-5000., 35000.)
-    cx4.scatter(tpc4_tlengths_array_notbp, tpc4_energies_array_notbp,
-            color = color)
-    cx4.set_title('TPC 4 Track Length vs Sum Q (not beampipe)')
-    cx4.set_xlabel('$\mu$m')
-    cx4.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-
-    print('Number of neutrons:')
-    print('TPC3:', len(tpc3phi_array))
-    print('TPC4:', len(tpc4phi_array))
-    print('Total:', neutrons)
-    print('Check:', len(tpc3phi_array) + len(tpc4phi_array))
-    print('\nBeampipe cut:')
-    print('TPC3:', len(tpc3theta_array_beampipe))
-    print('TPC4:', len(tpc4theta_array_beampipe))
-    print('\nOutside Beampipe:')
-    print('TPC3:', len(tpc3theta_array_notbp))
-    print('TPC4:', len(tpc4theta_array_notbp))
-    plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-    plt.show()
-
-def neutron_study_raw(datapath):
-    tpc3_phis = []
-    tpc3_thetas = []
-    tpc3_energies = []
-    tpc3_energies_bp = []
-    tpc3_energies_notbp = []
-    tpc3_sumtot = []
-    tpc3_sumtot_bp = []
-    tpc3_sumtot_notbp = []
-    tpc3_tlengths = []
-    tpc3_tlengths_bp = []
-    tpc3_tlengths_notbp = []
-    tpc3_thetas_beampipe = []
-    tpc3_thetas_notbp = []
-
-    tpc4_phis = []
-    tpc4_thetas = []
-    tpc4_energies = []
-    tpc4_energies_bp = []
-    tpc4_energies_notbp = []
-    tpc4_sumtot_bp = []
-    tpc4_sumtot_notbp = []
-    tpc4_sumtot = []
-    tpc4_tlengths = []
-    tpc4_tlengths_bp = []
-    tpc4_tlengths_notbp = []
-    tpc4_thetas_beampipe = []
-    tpc4_thetas_notbp = []
-
-    beamsize = []
-
-    good_files = [1464483600,
-            1464487200,
-            1464490800,
-            1464494400,
-            1464498000,
-            1464501600,
-            1464505200,
-            1464483600,
-            1464487200,
-            1464490800,
-            1464494400,
-            1464498000,
-            1464501600,
-            1464505200]
-
-    neutrons = 0
-
-    branches = ['neutron', 'theta', 'phi', 'de_dx', 'e_sum', 'tot_sum',
-            'detnb','hitside','t_length', 'npoints', 'min_ret']
-    ### Looping over many files
-    for subdir, dirs, files in os.walk(datapath):
-        for f in files :
-            if '.DS' in f: continue
-            r_file = str(subdir) + str('/') + str(f)
-
-            #if '.root' not in f: continue
-
-            print(r_file)
-
-            strs = f.split('_')
-
-            if int(strs[-2]) not in good_files : continue
-
-            data = root2rec(r_file, branches=branches)
-
-            if 'tpc3' in f : data.e_sum *= 1.18
-            if 'tpc4' in f : data.e_sum *= 1.64
-
-            counter_3 = 0
-            counter_4 = 0
-
-            for event in data:
-
-                ### Neutron selections
-                dQdx = (event.e_sum/event.t_length if event.hitside == 0
-                        and event.t_length > 0 else 0)
-
-                neutron = (1 if event.hitside == 0 
-                        and event.min_ret == 0
-                        and dQdx > 500.0
-                        and event.npoints > 40 
-                        and event.theta > 0
-                        and event.theta < 180
-                        and np.abs(event.phi) < 360
-                        and event.t_length > 2000
-                        else 0)
-
-                if neutron == 1 :
-                    phi = event.phi
-                    theta = event.theta
-
-                    ### Check if theta and phi values are absurdly wrong
-                    if abs(phi) > 720. or abs(theta) > 360 : continue
-
-                    if theta < 0. : theta += 180.
-                    elif theta > 180. : theta -= 180.
-
-                    neutrons += 1
-
-                    if phi < -360. : phi += 360.
-                    elif phi > 360. : phi -= 360.
-
-                    if theta < -360. : theta += 360.
-                    elif theta > 360. : theta -= 360.
-
-                    if phi < -90. :
-                        phi += 180.
-                        theta *= -1.
-                        theta += 180.
-
-                    elif phi > 90.:
-                        phi -= 180.
-                        theta *= -1.
-                        theta += 180.
-
-                    if theta < 0. : theta = theta + 180.
-                    if theta > 180. : theta = theta - 180.
-
-                    #if theta < 0. or theta > 180. :
-                        #print('Whoa!', theta, event.theta)
-                        #input('well?')
-
-                    if data.detnb[0] == 3 :
-                        tpc3_thetas.append(theta)
-                        tpc3_phis.append(phi)
-
-                        tpc3_energies.append(event.e_sum)
-                        tpc3_sumtot.append(event.tot_sum)
-                        tpc3_tlengths.append(event.tot_sum/event.de_dx)
-
-                    ### Select beampipe (+- 20 degrees)
-                        if abs(phi) < 20.:
-                            tpc3_thetas_beampipe.append(theta)
-                            tpc3_energies_bp.append(event.e_sum)
-                            tpc3_sumtot_bp.append(event.tot_sum)
-                            tpc3_tlengths_bp.append(event.tot_sum/event.de_dx)
-                        elif abs(phi) > 40.:
-                            tpc3_thetas_notbp.append(theta)
-                            tpc3_energies_notbp.append(event.e_sum)
-                            tpc3_sumtot_notbp.append(event.tot_sum)
-                            tpc3_tlengths_notbp.append(event.tot_sum/event.de_dx)
-
-
-                    elif data.detnb[0] == 4 :
-                        tpc4_phis.append(phi)
-                        tpc4_thetas.append(theta)
-
-                        tpc4_energies.append(event.e_sum)
-                        tpc4_sumtot.append(event.tot_sum)
-                        tpc4_tlengths.append(event.tot_sum/event.de_dx)
-
-                        #if 80. < theta and theta < 100 : print(theta)
-                        ### Select beampipe (+- 20 degrees)
-                        if abs(phi) < 20.:
-                            tpc4_thetas_beampipe.append(theta)
-                            tpc4_energies_bp.append(event.e_sum)
-                            tpc4_sumtot_bp.append(event.tot_sum)
-                            tpc4_tlengths_bp.append(event.tot_sum/event.de_dx)
-                        elif abs(phi) > 40.:
-                            tpc4_thetas_notbp.append(theta)
-                            tpc4_energies_notbp.append(event.e_sum)
-                            tpc4_sumtot_notbp.append(event.tot_sum)
-                            tpc4_tlengths_notbp.append(event.tot_sum/event.de_dx)
-
-    tpc3phi_array = np.array(tpc3_phis)
-    tpc3theta_array = np.array(tpc3_thetas)
-    tpc3_sumtot_array = np.array(tpc3_sumtot)
-    tpc3_sumtot_array_bp = np.array(tpc3_sumtot_bp)
-    tpc3_sumtot_array_notbp = np.array(tpc3_sumtot_notbp)
-    tpc3_energies_array = np.array(tpc3_energies)
-    tpc3_energies_array_bp = np.array(tpc3_energies_bp)
-    tpc3_energies_array_notbp = np.array(tpc3_energies_notbp)
-    tpc3_tlengths_array = np.array(tpc3_tlengths)
-    tpc3_tlengths_array_bp = np.array(tpc3_tlengths_bp)
-    tpc3_tlengths_array_notbp = np.array(tpc3_tlengths_notbp)
-    tpc3theta_array_beampipe = np.array(tpc3_thetas_beampipe)
-    tpc3theta_array_notbp = np.array(tpc3_thetas_notbp)
-
-    tpc4theta_array = np.array(tpc4_thetas)
-    tpc4phi_array = np.array(tpc4_phis)
-    tpc4_sumtot_array = np.array(tpc4_sumtot)
-    tpc4_sumtot_array_bp = np.array(tpc4_sumtot_bp)
-    tpc4_sumtot_array_notbp = np.array(tpc4_sumtot_notbp)
-
-    tpc4_energies_array = np.array(tpc4_energies)
-    #tpc4_energies_array *= 1.43
-
-    tpc4_energies_array_bp = np.array(tpc4_energies_bp)
-    #tpc4_energies_array_bp *= 1.43
-
-    tpc4_energies_array_notbp = np.array(tpc4_energies_notbp)
-    #tpc4_energies_array_notbp *= 1.43
-
-    tpc4_tlengths_array = np.array(tpc4_tlengths)
-    tpc4_tlengths_array_bp = np.array(tpc4_tlengths_bp)
-    tpc4_tlengths_array_notbp = np.array(tpc4_tlengths_notbp)
-    tpc4theta_array_beampipe = np.array(tpc4_thetas_beampipe)
-    tpc4theta_array_notbp = np.array(tpc4_thetas_notbp)
-
-    beamsize = np.array(beamsize)
-
-    phi_bins = 18
-    theta_bins = 9
-
-    return (tpc3theta_array, tpc4theta_array, tpc3phi_array, tpc4phi_array,
-            tpc3theta_array_beampipe, tpc3theta_array_notbp,
-            tpc4theta_array_beampipe, tpc4theta_array_notbp)
-
 def neutron_study_sim(simpath):
     sumQ = []
     tlengths = []
@@ -1331,8 +533,6 @@ def neutron_study_sim(simpath):
 
     truth_thetas = []
     truth_phis = []
-
-    truth_file = '/Users/BEASTzilla/BEAST/sim/v5.2/mc_beast_run_2016-02-09.root'
 
     for f in os.listdir(simpath) :
         if '.root' not in f or 'HER' in f : continue
@@ -1384,6 +584,14 @@ def neutron_study_sim(simpath):
                                    npoints,
                                    data.npoints
                                    ])
+        truth_phis = np.concatenate([
+                                        truth_phis,
+                                        data.truePhi
+                                        ])
+        truth_thetas = np.concatenate([
+                                        truth_thetas,
+                                        data.trueTheta
+                                        ])
         if 'Touschek' in f :
             touschek = np.concatenate([touschek, np.ones(len(data)) ])
             beam_gas = np.concatenate([beam_gas, np.zeros(len(data)) ])
@@ -1417,7 +625,7 @@ def neutron_study_sim(simpath):
               & (thetas > 0)
               & (thetas < 180)
               & (np.abs(phis) < 360)
-              & (tlengths > 2500)
+              & (tlengths > global_tl)
             )
 
     ch3_sels = (
@@ -1430,7 +638,7 @@ def neutron_study_sim(simpath):
               #& (thetas > 0)
               #& (thetas < 180)
               #& (np.abs(phis) < 360)
-              & (tlengths > 2500)
+              & (tlengths > global_tl)
             )
 
     ch4_sels = (
@@ -1443,7 +651,7 @@ def neutron_study_sim(simpath):
               #& (thetas > 0)
               #& (thetas < 180)
               #& (np.abs(phis) < 360)
-              & (tlengths > 2500)
+              & (tlengths > global_tl)
             )
 
     #### Correct for theta and (phi) outside of 180 (360) degrees
@@ -1463,17 +671,27 @@ def neutron_study_sim(simpath):
     ch3_folded_thetas = folded_thetas[ch3_sels]    
     ch4_folded_thetas = folded_thetas[ch4_sels]    
 
+    ch3_truth_thetas = truth_thetas[ch3_sels]
+    ch4_truth_thetas = truth_thetas[ch4_sels]
+
+
     ch3_folded_phis = folded_phis[ch3_sels]    
     ch4_folded_phis = folded_phis[ch4_sels]    
+
+    ch3_truth_phis = truth_phis[ch3_sels]
+    ch4_truth_phis = truth_phis[ch4_sels]
 
     ch3_bp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis) < 20]
     ch4_bp_thetas = ch4_folded_thetas[np.abs(ch4_folded_phis) < 20]
 
-    ch3_nbp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis) > 40]
-    ch4_nbp_thetas = ch4_folded_thetas[np.abs(ch4_folded_phis) > 40]
+    ch3_bp_truth_thetas = ch3_truth_thetas[np.abs(ch3_folded_phis) < 20]
+    ch4_bp_truth_thetas = ch4_truth_thetas[np.abs(ch4_folded_phis) < 20]
 
     ch3_nbp_thetas = ch3_folded_thetas[np.abs(ch3_folded_phis) > 40]
     ch4_nbp_thetas = ch4_folded_thetas[np.abs(ch4_folded_phis) > 40]
+
+    ch3_nbp_truth_thetas = ch3_truth_thetas[np.abs(ch3_folded_phis) > 40]
+    ch4_nbp_truth_thetas = ch4_truth_thetas[np.abs(ch4_folded_phis) > 40]
 
     ch3_bp_thetas = np.histogram(
             ch3_bp_thetas,
@@ -1625,7 +843,10 @@ sub-arrays...')
             ch3_bp_thetas[0], ch3_nbp_thetas[0], ch4_bp_thetas[0],
             ch4_nbp_thetas[0], ch3_thetas_bks, ch4_thetas_bks, 
             ch3_phis_bks, ch4_phis_bks, ch3_thetas_bpdirect,
-            ch3_thetas_nbpdirect, ch4_thetas_bpdirect, ch4_thetas_nbpdirect)
+            ch3_thetas_nbpdirect, ch4_thetas_bpdirect, ch4_thetas_nbpdirect,
+            ch3_truth_thetas, ch4_truth_thetas, ch3_bp_truth_thetas,
+            ch4_bp_truth_thetas, ch3_nbp_truth_thetas, ch4_nbp_truth_thetas,
+            ch3_truth_phis, ch4_truth_phis)
 
 def energy_eff_study(gain_path):
     #runs = run_names('LER_ToushekTPC')
@@ -1718,7 +939,7 @@ def energy_eff_study(gain_path):
                                      & (data.de_dx > 500)
                                      & (data.npoints > 40)
                                      & (data.min_ret == 0)
-                                     & (data.t_length > 2000.0)
+                                     & (data.t_length > global_tl)
                                      )]
                                 ])
 
@@ -1734,7 +955,7 @@ def energy_eff_study(gain_path):
                                      & (data.de_dx > 500)
                                      & (data.npoints > 40)
                                      & (data.min_ret == 0)
-                                     & (data.t_length > 2000.0)
+                                     & (data.t_length > global_tl)
                                      )]
                                 ])
 
@@ -1934,6 +1155,7 @@ def energy_study(datapath, simpath):
                     & (data_min_rets == 0)
                     & (data_dQdx > 500.0)
                     & (data_npoints > 40)
+                    & (data_tlengths > global_tl)
                     )
 
         ch4_data_sels = (
@@ -1942,6 +1164,7 @@ def energy_study(datapath, simpath):
                     & (data_min_rets == 0)
                     & (data_dQdx > 500.0)
                     & (data_npoints > 40)
+                    & (data_tlengths > global_tl)
                     )
 
 
@@ -1976,6 +1199,10 @@ def energy_study(datapath, simpath):
                                             & (data.SKB_LER_injectionFlag_safe == 0) )],
                         ['TPC3_PID_neutrons'])['TPC3_PID_neutrons']
 
+                TPC3_tracklengths = stretch(data[( (data.subrun == i)
+                                            & (data.SKB_LER_injectionFlag_safe == 0) )],
+                        ['TPC3_length'])['TPC3_length']
+
                 TPC4_sumQ = stretch(data[( (data.subrun == i)
                                             & (data.SKB_LER_injectionFlag_safe == 0)
                                             )],
@@ -1996,11 +1223,17 @@ def energy_study(datapath, simpath):
                                             & (data.SKB_LER_injectionFlag_safe == 0) )],
                         ['TPC4_PID_neutrons'])['TPC4_PID_neutrons']
 
+                TPC4_tracklengths = stretch(data[( (data.subrun == i)
+                                            & (data.SKB_LER_injectionFlag_safe == 0) )],
+                        ['TPC4_length'])['TPC4_length']
+
                 ch3_data_Q = np.concatenate([ch3_data_Q, 
                                              TPC3_sumQ[(
                                                         (TPC3_PID_neutrons == 1)
                                                       & (TPC3_dEdx > 500.0)
                                                       & (TPC3_npoints > 40)
+                                                      & (TPC3_tracklengths >
+                                                          global_tl)
                                                       )]
                                              ])
 
@@ -2009,6 +1242,8 @@ def energy_study(datapath, simpath):
                                                         (TPC4_PID_neutrons == 1)
                                                       & (TPC4_dEdx > 500.0)
                                                       & (TPC4_npoints > 40)
+                                                      & (TPC4_tracklengths >
+                                                          global_tl)
                                                       )]
                                              ])
             ch3_data_E = ch3_data_Q/(gain1 * gain2) * W * 1E-3
@@ -2069,8 +1304,8 @@ def energy_study(datapath, simpath):
         sim_min_rets = np.concatenate([sim_min_rets, sim.min_ret])
 
         tree_name = r_file.split('.')[-2].split('/')[-1]
-        truth = root2rec(truth_file, tree_name)
-        truth_KE = np.concatenate([truth_KE, truth.truth_KineticEnergy*1E3])
+        #truth = root2rec(truth_file, tree_name)
+        truth_KE = np.concatenate([truth_KE, sim.truth_KineticEnergy*1E3])
 
         if 'Touschek' in f :
             touschek = np.concatenate([touschek, np.ones(len(sim)) ])
@@ -2123,6 +1358,10 @@ def energy_study(datapath, simpath):
     pulse_widths = np.array(pulse_widths)
 
 
+    print(sim_tlengths[touschek==1])
+    print(np.max(sim_tlengths[touschek==1]))
+    input('well?')
+
     # Selections in sim
     ch3_touschek_sels = (
                 (pulse_widths > 3)
@@ -2133,6 +1372,7 @@ def energy_study(datapath, simpath):
                 & (sim_min_rets == 0)
                 & (sim_dQdx > 500)
                 & (sim_npoints > 40)
+                & (sim_tlengths > global_tl)
                 )
 
     ch4_touschek_sels = (
@@ -2144,6 +1384,7 @@ def energy_study(datapath, simpath):
                 & (sim_min_rets == 0)
                 & (sim_dQdx > 500)
                 & (sim_npoints > 40)
+                & (sim_tlengths > global_tl)
                 )
 
     ch3_beamgas_sels = (
@@ -2155,6 +1396,7 @@ def energy_study(datapath, simpath):
                 & (sim_min_rets == 0)
                 & (sim_dQdx > 500)
                 & (sim_npoints > 40)
+                & (sim_tlengths > global_tl)
                 )
 
     ch4_beamgas_sels = (
@@ -2166,6 +1408,7 @@ def energy_study(datapath, simpath):
                 & (sim_min_rets == 0)
                 & (sim_dQdx > 500)
                 & (sim_npoints > 40)
+                & (sim_tlengths > global_tl)
                 )
 
     ### Debug
@@ -2183,9 +1426,9 @@ def energy_study(datapath, simpath):
     print(ch3_v2_ratio[ch3_v2_ratio > 1.0])
     print(ch4_v2_ratio[ch4_v2_ratio > 1.0])
     
-    print('Investigating events with  reco/truth KE greater than 1')
-    print('Npoints:', sim_npoints[ch4_v2_ratio > 1.0][0])
-    print(np.min(sim_tots[ch4_v2_ratio > 1.0][0]))
+    #print('Investigating events with  reco/truth KE greater than 1')
+    #print('Npoints:', sim_npoints[ch4_v2_ratio > 1.0][0])
+    #print(np.min(sim_tots[ch4_v2_ratio > 1.0][0]))
 
     # Print number of unweighted MC neutrons
     print('Printing raw number of MC neutrons (unweighted) ... ')
@@ -2249,14 +1492,14 @@ def energy_study(datapath, simpath):
     ch4_weighted_rate = [0,0]
 
     ch3_weighted_rate[0] = ( (subrun_Touschek * len(sim_E[ch3_touschek_sels]) ) /
-                        (36000.0 * 9090.91) )
+                        (36000.0 * 5.0 * 9090.91) )
     ch3_weighted_rate[1] = ( (subrun_BeamGas * len(sim_E[ch3_beamgas_sels]) ) /
-                        (36000.0 * 0.0097) )
+                        (36000.0 * 5.0 * 0.0097) )
 
     ch4_weighted_rate[0] = ( (subrun_Touschek * len(sim_E[ch4_touschek_sels]) ) /
-                        (36000.0 * 9090.91) )
+                        (36000.0 * 5.0 * 9090.91) )
     ch4_weighted_rate[1] = ( (subrun_BeamGas * len(sim_E[ch4_beamgas_sels]) ) /
-                        (36000.0 * 0.0097) )
+                        (36000.0 * 5.0 * 0.0097) )
 
     print(ch3_weighted_rate)
     print(ch4_weighted_rate)
@@ -3196,6 +2439,11 @@ def event_inspection(datapath):
     #input('well?')
 
 def compare_toushek(datapath, simpath):
+
+    print('Track length selection is:', global_tl)
+    input('Continue?')
+
+
     # Get rate vs beamsize from BEAST data ntuples
     data_toushek = neutron_rate_data(datapath)
     print('Printing rates and subrun durations from data ... ')
@@ -3487,18 +2735,9 @@ def compare_toushek(datapath, simpath):
 
 
 def compare_angles(datapath, simpath):
-    #data_angles = neutron_study_raw(datapath)
     data_angles = neutron_angles_data(datapath)
     sim_angles = neutron_study_sim(simpath)
     print('\nPassed angle arrays to plotting function:')
-    #print(sim_angles[0])
-    #print(sim_angles[1])
-    #print(sim_angles[2])
-    #print(sim_angles[3])
-    #print(sim_angles[4])
-    #print(sim_angles[5])
-    #print(sim_angles[6])
-    #print(sim_angles[7])
     print('Sim angles:', np.sum(sim_angles[0]), np.sum(sim_angles[1]),
             np.sum(sim_angles[2]), np.sum(sim_angles[3]))
     print('Data angles:', len(data_angles[0]), len(data_angles[1]),
@@ -3734,7 +2973,6 @@ def compare_angles(datapath, simpath):
 
     print('\nKolmogorov test for TPC 3 bkgs:', K3)
     print('Kolmogorov test for TPC 4 bkgs:', K4)
-    input('well?')
 
 
     fitted_yield = result.Integral()
@@ -3746,7 +2984,6 @@ def compare_angles(datapath, simpath):
     t_frac4, t_frac4_err = r.Double(), r.Double()
     fit.GetResult(1, t_frac4, t_frac4_err)
     print(t_frac4, t_frac4_err)
-    input('well?')
 
     print('\nNumber of entries in each Ch4 Theta Histogram ..')
     print('Touschek: %i  BeamGas: %i' % (len(sim_angles[9][0]),
@@ -3797,24 +3034,16 @@ def compare_angles(datapath, simpath):
 
     plt.show()
 
-    # Plot sum of Touschek and beam gas obtained from histogram PDF
+    # Plot sum of Touschek and beam gas obtained from fit
     sum_hists = (ch4Theta_Touschek_hist[0] + ch4Theta_BeamGas_hist[0])
     sum_norm = np.sum(sum_hists)
     sum_fitted_norm = parameters['TouschekN'] + parameters['BeamGasN']
 
-    #plt.hist(thetas,
-    #        weights=sum_hists*sum_fitted_norm/sum_norm,
-    #        color='C4', bins=data_edges, label='MC Fitted Sum')
-
-    # Plot beam gas distribution obtained from histogram PDF
+    # Plot beam gas distribution obtained from fit
     g = plt.figure(figsize=(10,6*1.25))
     ax2 = g.add_subplot(111)
     ax2.hist([thetas,thetas],
             weights=[
-                ### Plot the probfit histogrampdf results
-                #ch4Theta_Touschek_hist[0]*parameters['TouschekN']/Touschek_norm,
-                #ch4Theta_BeamGas_hist[0]*parameters['BeamGasN']/BeamGas_norm],
-
                 ### Plot the ROOT TFractionFitter results
                 test*t_frac4,
                 test*bg_frac4,
@@ -3824,22 +3053,10 @@ def compare_angles(datapath, simpath):
             stacked=True,
             )
 
-    # Plot Touschek distribution obtained from histogram PDF
-    #plt.hist(thetas,
-    #        weights=ch4Theta_Touschek_hist[0]*parameters['TouschekN']/Touschek_norm,
-    #        color='C0', bins=data_edges, label='MC Touschek')
-
+    # Plot Touschek distribution obtained from fit
 
     ax2.errorbar(data_x, data_y, fmt='o', yerr=np.sqrt(data_y), color='k',
             label='Experiment')
-    #plt.plot(total_pdf_x, total_pdf_y, color='blue', lw=2)
-    #colors = ['orange', 'purple', 'DarkGreen']
-    #labels = ['Background', 'Signal 1', 'Signal 2']
-    #for color, label, part in zip(colors, parts):
-    #    x, y = part
-    #    plt.plot(x, y, ls='--', color=color)
-    #plt.grid(True)
-
     ax2.set_xlabel('TPC 4 $\\theta$ [$^\circ$]', ha='right', x=1.0)
     ax2.set_ylabel(u'Events per 20\u00B0', ha='right', y=1.0)
     ax2.set_ylim(plt.ylim()[0], 150)
@@ -3934,6 +3151,94 @@ def compare_angles(datapath, simpath):
     plt.savefig('ch3_phi_histoPDF_fit.pdf')
     plt.show()
 
+    del h_bg3, h_t3, h_d3
+    del h_bg4, h_t4, h_d4
+
+    h_bg3 = r.TH1F('h_bg3', 'h_bg3', phi_bins, -90.0, 90)
+    h_t3 = r.TH1F('h_t3', 'h_t3', phi_bins, -90.0, 90)
+    h_d3 = r.TH1F('h_d3', 'h_d3', phi_bins, -90.0, 90)
+
+    for phi in sim_angles[10][1] :
+        h_bg3.Fill(phi)
+    test = hist2array(h_bg3)
+    print('Printing BG histo:\n', test)
+    
+    for phi in sim_angles[10][0] :
+        h_t3.Fill(phi)
+    test = hist2array(h_t3)
+    print('Printing T histo:\n', test)
+
+    for phi in data_angles[2]:
+        h_d3.Fill(phi)
+
+    test = hist2array(h_d3)
+    print('Printing data histo:\n', test)
+
+    f = TFile('ch3_phi_histos.root', 'RECREATE')
+    h_bg3.Write()
+    h_t3.Write()
+    h_d3.Write()
+    f.Close()
+    #input('well?')
+
+    mc = r.TObjArray(2)
+    mc.Add(h_bg3)
+    mc.Add(h_t3)
+    fit = r.TFractionFitter(h_d3, mc, 'V')
+    fit.Constrain(0, 0.0, 1.0)
+    fit.Constrain(1, 0.0, 1.0)
+    vFit = fit.GetFitter()
+    fconfig = vFit.Config()
+    fconfig.SetMinosErrors()
+
+    fit.Fit()
+
+    fit.ErrorAnalysis(0.00001)
+
+    print(fit.GetChisquare())
+
+    result = fit.GetPlot()
+
+    test = hist2array(result)
+    print('Printing result histo:\n', test)
+    print()
+
+    fitted_yield = result.Integral()
+
+    bg_frac3, bg_frac3_err = r.Double(), r.Double()
+    fit.GetResult(0, bg_frac3, bg_frac3_err)
+    print(bg_frac3, bg_frac3_err)
+
+    t_frac3, t_frac3_err = r.Double(), r.Double()
+    fit.GetResult(1, t_frac3, t_frac3_err)
+    print(t_frac3, t_frac3_err)
+
+    # Plot beam gas distribution obtained from fit
+    g = plt.figure(figsize=(10,6*1.25))
+    ax2 = g.add_subplot(111)
+    ax2.hist([phis,phis,phis],
+            weights=[
+                ### Plot the ROOT TFractionFitter results
+                test*t_frac3,
+                test*(t_frac3+bg_frac3),
+                test*bg_frac3,
+                ],
+            color=['C0','C4','C1',], bins=data_edges,
+            label=['Fitted MC Touschek','Fitted MC Sum','Fitted MC Beam Gas'],
+            )
+
+    # Plot Touschek distribution obtained from fit
+
+    ax2.errorbar(data_x, data_y, fmt='o', yerr=np.sqrt(data_y), color='k',
+            label='Experiment')
+    ax2.set_xlabel('TPC 3 $\phi$ [$^\circ$]', ha='right', x=1.0)
+    ax2.set_ylabel(u'Events per 20\u00B0', ha='right', y=1.0)
+    ax2.set_ylim(plt.ylim()[0], 150)
+    #ax2.legend(loc='best')
+    #plt.savefig('ch4_theta_histoPDF_fit.pdf')
+    g.savefig('ch3_phi_TFractionFitter.pdf')
+    plt.show()
+
     print('\nNumber of entries in each Ch4 Phi Histogram ..')
     print('Touschek: %i  BeamGas: %i' % (len(sim_angles[11][0]),
         len(sim_angles[11][1]) ) )
@@ -4012,6 +3317,139 @@ def compare_angles(datapath, simpath):
     plt.savefig('ch4_phi_histoPDF_fit.pdf')
     plt.show()
 
+    h_bg4 = r.TH1F('h_bg4', 'h_bg4', phi_bins, -90.0, 90)
+    h_t4 = r.TH1F('h_t4', 'h_t4', phi_bins, -90.0, 90)
+    h_d4 = r.TH1F('h_d4', 'h_d4', phi_bins, -90.0, 90)
+
+    for phi in sim_angles[11][1] :
+        h_bg4.Fill(phi)
+    test = hist2array(h_bg4)
+    print('Printing BG histo:\n', test)
+    
+    for phi in sim_angles[10][0] :
+        h_t4.Fill(phi)
+    test = hist2array(h_t4)
+    print('Printing T histo:\n', test)
+
+    for phi in data_angles[3]:
+        h_d4.Fill(phi)
+
+    test = hist2array(h_d4)
+    print('Printing data histo:\n', test)
+
+    f = TFile('ch4_phi_histos.root', 'RECREATE')
+    h_bg4.Write()
+    h_t4.Write()
+    h_d4.Write()
+    f.Close()
+    #input('well?')
+
+    mc = r.TObjArray(2)
+    mc.Add(h_bg4)
+    mc.Add(h_t4)
+    fit = r.TFractionFitter(h_d4, mc, 'V')
+    fit.Constrain(0, 0.0, 1.0)
+    fit.Constrain(1, 0.0, 1.0)
+    vFit = fit.GetFitter()
+    fconfig = vFit.Config()
+    fconfig.SetMinosErrors()
+
+    fit.Fit()
+
+    fit.ErrorAnalysis(0.00001)
+
+    print(fit.GetChisquare())
+
+    result = fit.GetPlot()
+
+    test = hist2array(result)
+    print('Printing result histo:\n', test)
+    print()
+
+    fitted_yield = result.Integral()
+
+    bg_frac3, bg_frac3_err = r.Double(), r.Double()
+    fit.GetResult(0, bg_frac3, bg_frac3_err)
+    print(bg_frac3, bg_frac3_err)
+
+    t_frac3, t_frac3_err = r.Double(), r.Double()
+    fit.GetResult(1, t_frac3, t_frac3_err)
+    print(t_frac3, t_frac3_err)
+
+    # Plot beam gas distribution obtained from fit
+    g = plt.figure(figsize=(10,6*1.25))
+    ax2 = g.add_subplot(111)
+    ax2.hist([phis,phis,phis],
+            weights=[
+                ### Plot the ROOT TFractionFitter results
+                test*t_frac4,
+                test*(t_frac4+bg_frac4),
+                test*bg_frac4,
+                ],
+            color=['C0','C4','C1',], bins=data_edges,
+            label=['Fitted MC Touschek','Fitted MC Sum','Fitted MC Beam Gas'],
+            )
+
+    # Plot Touschek distribution obtained from fit
+
+    ax2.errorbar(data_x, data_y, fmt='o', yerr=np.sqrt(data_y), color='k',
+            label='Experiment')
+    ax2.set_xlabel('TPC 4 $\phi$ [$^\circ$]', ha='right', x=1.0)
+    ax2.set_ylabel(u'Events per 20\u00B0', ha='right', y=1.0)
+    ax2.set_ylim(plt.ylim()[0], 150)
+    #ax2.legend(loc='best')
+    #plt.savefig('ch4_theta_histoPDF_fit.pdf')
+    g.savefig('ch4_phi_TFractionFitter.pdf')
+
+
+    ### Angular distributions
+    truth_thetabins = np.linspace(0,180,9)
+    truth_phibins = np.linspace(-180,180,18)
+
+    e = plt.figure()
+    ax0 = e.add_subplot(111)
+    ax0.hist([sim_angles[16],np.concatenate([sim_angles[8][0],sim_angles[8][1]])],
+             bins=truth_thetabins,
+             label=['Truth','Reconstructed'],
+             )
+    ax0.set_xlabel('TPC 3 $\\theta$ [$^{\circ}$] (all)',ha='right',x=1.0)
+    ax0.set_ylabel('Events per 20$^{\circ}$',ha='right',y=1.0)
+    ax0.legend(loc='best')
+    e.savefig('tpc3_truth_vs_reconstructed_theta_all.pdf')
+
+    d = plt.figure()
+    bx1 = d.add_subplot(111)
+    bx1.hist([sim_angles[18],np.concatenate([sim_angles[12][0],sim_angles[12][1]])],
+             bins=truth_thetabins,
+             label=['Truth','Reconstructed'],
+             )
+    bx1.set_xlabel('TPC 3 $\\theta$ [$^{\circ}$] (bp)',ha='right',x=1.0)
+    bx1.set_ylabel('Events per 20$^{\circ}$',ha='right',y=1.0)
+    bx1.legend(loc='best')
+    d.savefig('tpc3_truth_vs_reconstructed_theta_bp.pdf')
+
+    c = plt.figure()
+    bx2 = c.add_subplot(111)
+    bx2.hist([sim_angles[20],np.concatenate([sim_angles[13][0],sim_angles[13][1]])],
+             bins=truth_thetabins,
+             label=['Truth','Reconstructed'],
+             )
+    bx2.set_xlabel('TPC 3 $\\theta$ [$^{\circ}$] (nbp)',ha='right',x=1.0)
+    bx2.set_ylabel('Events per 20$^{\circ}$',ha='right',y=1.0)
+    bx2.legend(loc='best')
+    c.savefig('tpc3_truth_vs_reconstructed_theta_nbp.pdf')
+
+    b = plt.figure()
+    bx3 = b.add_subplot(111)
+    bx3.hist([sim_angles[22],np.concatenate([sim_angles[10][0],sim_angles[10][1]])],
+             bins=truth_phibins,
+             label=['Truth','Reconstructed'],
+             )
+    bx3.set_xlabel('TPC 3 $\phi$ [$^{\circ}$] (all)',ha='right',x=1.0)
+    bx3.set_ylabel('Events per 20$^{\circ}$',ha='right',y=1.0)
+    bx3.legend(loc='best')
+    b.savefig('tpc3_truth_vs_reconstructed_phi_all.pdf')
+    plt.show()
 
 
     weights=[ 
@@ -4187,8 +3625,8 @@ def compare_angles(datapath, simpath):
     subrun_times, subrun_BeamGas, subrun_Touschek, _ = calc_sim_weights(beast_datapath, simpath)
 
     weights=[ 
-            np.array([1.0/(36000.0*9090.91)]*len(sim_angles[8][0])),
-            np.array([1.0/(36000.0*0.0097)]*len(sim_angles[8][1])),
+            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[8][0])),
+            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[8][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
@@ -4227,8 +3665,8 @@ def compare_angles(datapath, simpath):
     f.savefig('TPC3_theta_datavsmc_sim_weighted.pdf')
 
     weights=[ 
-            np.array([1.0/(36000.0*9090.91)]*len(sim_angles[9][0])),
-            np.array([1.0/(36000.0*0.0097)]*len(sim_angles[9][1])),
+            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[9][0])),
+            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[9][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
@@ -4257,8 +3695,8 @@ def compare_angles(datapath, simpath):
     g.savefig('TPC4_theta_datavsmc_sim_weighted.pdf')
 
     weights=[ 
-            np.array([1.0/(36000.0*9090.91)]*len(sim_angles[10][0])),
-            np.array([1.0/(36000.0*0.0097)]*len(sim_angles[10][1])),
+            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[10][0])),
+            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[10][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
@@ -4286,8 +3724,8 @@ def compare_angles(datapath, simpath):
 
 
     weights=[ 
-            np.array([1.0/(36000.0*9090.91)]*len(sim_angles[11][0])),
-            np.array([1.0/(36000.0*0.0097)]*len(sim_angles[11][1])),
+            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[11][0])),
+            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[11][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
@@ -4313,8 +3751,8 @@ def compare_angles(datapath, simpath):
     k.savefig('TPC4_phi_datavsmc_sim_weighted.pdf')
 
     weights=[ 
-            np.array([1.0/(36000.0*9090.91)]*len(sim_angles[12][0])),
-            np.array([1.0/(36000.0*0.0097)]*len(sim_angles[12][1])),
+            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[12][0])),
+            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[12][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
@@ -4337,8 +3775,8 @@ def compare_angles(datapath, simpath):
     l.savefig('TPC3_theta_bpdirectvsmc_sim_weighted.pdf')
 
     weights=[ 
-            np.array([1.0/(36000.0*9090.91)]*len(sim_angles[13][0])),
-            np.array([1.0/(36000.0*0.0097)]*len(sim_angles[13][1])),
+            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[13][0])),
+            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[13][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
@@ -4362,8 +3800,8 @@ def compare_angles(datapath, simpath):
     m.savefig('TPC3_theta_not_bpdirectvsmc_sim_weighted.pdf')
 
     weights=[ 
-            np.array([1.0/(36000.0*9090.91)]*len(sim_angles[14][0])),
-            np.array([1.0/(36000.0*0.0097)]*len(sim_angles[14][1])),
+            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[14][0])),
+            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[14][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
@@ -4386,8 +3824,8 @@ def compare_angles(datapath, simpath):
     o.savefig('TPC4_theta_bpdirectvsmc_sim_weighted.pdf')
 
     weights=[ 
-            np.array([1.0/(36000.0*9090.91)]*len(sim_angles[15][0])),
-            np.array([1.0/(36000.0*0.0097)]*len(sim_angles[15][1])),
+            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[15][0])),
+            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[15][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
@@ -4630,6 +4068,8 @@ def fit_study(datapath):
         except :
             print('File is empty. Continuing ...')
             continue
+
+
         sumQ = np.concatenate([sumQ, (data.e_sum)])
         tlengths = np.concatenate([tlengths, (data.t_length)])
         thetas = np.concatenate([thetas, (data.theta)])
@@ -4666,8 +4106,6 @@ def fit_study(datapath):
                  & (hitside == 0)
                  & (dQdx > 500.0)
                  & (npoints > 40)
-                 #& ( ((npoints < 400) & (dQdx < 1500)) | 
-                 #    ((npoints < 1500) & (dQdx > 1500) ))
                  & (min_rets == 0)
                  & (thetas > 0)
                  & (thetas < 180)
@@ -4713,7 +4151,7 @@ def fit_study(datapath):
 
     print('Printing number of events to be obtained by loosening tlength cut...')
     print('Number of events with tlength larger than 2mm:',
-            len(tlengths[((angle_sels) & (tlengths>2000.0))]) )
+            len(tlengths[((angle_sels) & (tlengths>global_tl))]) )
     print('Number of events of any tlength', len(tlengths[angle_sels]) )
     print('***************************************************************')
     print()
@@ -5084,7 +4522,7 @@ def cut_study(simpath, datapath):
                       & (thetas > 0)
                       & (thetas < 180)
                       & (np.abs(phis) < 360)
-                      & (tlengths > 2000)
+                      & (tlengths > global_tl)
                       )
 
 
@@ -5172,7 +4610,7 @@ def cut_study(simpath, datapath):
                       & (thetas > 0)
                       & (thetas < 180)
                       & (np.abs(phis) < 360)
-                      & (tlengths > 2000)
+                      & (tlengths > global_tl)
                       )
 
     ### Populate data arrays
@@ -5323,7 +4761,7 @@ def cut_study(simpath, datapath):
                       & (data_thetas > 0)
                       & (data_thetas < 180)
                       & (np.abs(data_phis) < 360)
-                      & (data_tlengths > 2000)
+                      & (data_tlengths > global_tl)
                       )
 
     ### Apply v2 of TOT -> charge conversion
@@ -6499,11 +5937,10 @@ def main():
     ### Use BEAST v2 data
     v2_datapath = str(home) + '/BEAST/data/v2/'
     v31_datapath = str(home) + '/BEAST/data/v3.1/'
-    #simpath = str(home) + '/BEAST/sim/v4.1/'
+    
     v4_simpath = '/Users/BEASTzilla/BEAST/sim/sim_refitter/v4.1/'
     v50_simpath = '/Users/BEASTzilla/BEAST/sim/sim_refitter/v5.0/'
 
-    #v52_simpath = '/Users/BEASTzilla/BEAST/sim/sim_refitter/v5.2/QGSP_BERT_HP/'
     v52_simpath = '/Users/BEASTzilla/BEAST/sim/sim_refitter/v5.2/FTFP_BERT_HP/'
 
     v53_simpath = '/Users/BEASTzilla/BEAST/sim/v5.3/QGSP_BERT_HP/'
@@ -6511,20 +5948,21 @@ def main():
     #v54_simpath = '/Users/BEASTzilla/BEAST/sim/v5.4/QGSP_BERT_HP/'
     v54_simpath = '/Users/BEASTzilla/BEAST/sim/v5.4/FTFP_BERT_HP/'
 
-    v100hrs_simpath = '/Users/BEASTzilla/BEAST/sim/sim_refitter/v5.X_100hr_neutrons/FTFP_BERT_HP/'
+    v50hrs_simpath = '/Users/BEASTzilla/BEAST/sim/sim_refitter/v5.X_50hr_neutrons/FTFP_BERT_HP/'
 
     inpath = str(home) + '/BEAST/data/TPC/tpc_toushekrun/2016-05-29/'
 
+    # Set global variables for cuts to be used
+    global global_tl
+    global_tl = 2000.0
+
     #compare_toushek(v31_datapath, v54_simpath)
     #compare_angles(v31_datapath, v52_simpath)
+    #compare_angles(v31_datapath, v50hrs_simpath)
 
-    ##rate_vs_beamsize(datapath)
-    #sim_rate_vs_beamsize(simpath)
-
-    #neutron_study_raw(inpath)
-    #neutron_study_sim(v4_simpath)
-    #energy_study(inpath, v52_simpath)
     #energy_study(v31_datapath, v52_simpath)
+    #energy_study(v31_datapath, v50hrs_simpath)
+
     #gain_study(inpath)
     #energy_eff_study(inpath)
     #pid_study(inpath, v50_simpath)
@@ -6534,10 +5972,10 @@ def main():
 
     #cut_study_data(inpath) 
     #fit_study(v52_simpath)
-    fit_study(v100hrs_simpath)
+    fit_study(v50hrs_simpath)
 
     #cut_study(v52_simpath, inpath)
-    #cut_study(v100hrs_simpath, inpath)
+    #cut_study(v50hrs_simpath, inpath)
 
     #energy_cal(v50_simpath, inpath)
 
