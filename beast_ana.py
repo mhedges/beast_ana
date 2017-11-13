@@ -82,11 +82,20 @@ def calc_sim_weights(datapath, simpath):
     subrun_IP = []
     subrun_IPsigYZ2 = []
     print('Getting weights for simulation for BEAST runs 10002-10004 ... ')
+
+    runs = [
+            'BEAST_run5100.root',
+            'BEAST_run12006.root',
+            ]
+
     for f in os.listdir(datapath) :
         fname = str(datapath) + str(f) 
         data = root2rec(fname, 'tout')
-        for i in range(np.max(data.subrun)+1) :
-            if i == 0 : continue
+
+        i=0
+        while (i<np.max(data.subrun)+1) :
+        #for i in range(np.max(data.subrun)+1) :
+            #if i == 0 : continue
             P_avg = np.mean(data.SKB_LER_pressures_local_corrected[data.subrun==i])[0]
 
             LER_current = stretch(data[ (
@@ -122,6 +131,8 @@ def calc_sim_weights(datapath, simpath):
             subrun_I2sigY.append(I_avg**2/sigmaY_avg)
             subrun_IP.append(I_avg*P_avg)
             subrun_IPsigYZ2.append(I_avg/(P_avg*sigmaY_avg*Z_eff**2))
+
+            i+=1
     
     subrun_durations = np.array(subrun_durations)
     subrun_IPZ2 = np.array(subrun_IPZ2)
@@ -267,6 +278,21 @@ def neutron_angles_data(datapath):
                 'SKB_LER_injectionFlag_safe ',
                 ]
 
+    ### For HER
+    runs = [
+            #'BEAST_run1004.root',
+            'BEAST_run2001.root',
+            'BEAST_run2002.root',
+            'BEAST_run2003.root',
+            'BEAST_run2004.root',
+            'BEAST_run2005.root',
+            #'BEAST_run2006.root',
+            'BEAST_run2007.root',
+            'BEAST_run2008.root',
+            'BEAST_run2009.root',
+            'BEAST_run5100.root',
+            'BEAST_run12006.root',
+            ]
 
     for f in os.listdir(datapath):
         if f not in runs: continue
@@ -280,8 +306,11 @@ def neutron_angles_data(datapath):
         neutrons4 = 0
         data = root2rec(ifile,'tout')
 
-        for i in range(1, np.max(data.subrun)+1 ):
-            if i == 0 : continue
+        #for i in range(0, np.max(data.subrun)+1 ):
+        #for i in range(np.max(data.subrun)):
+        i = 0
+        while (i<np.max(data.subrun)+1) :
+        #    if i == 0 : continue
             TPC3_npoints = stretch(data[( (data.subrun == i)
                                         & (data.SKB_LER_injectionFlag_safe == 0) )],
                     ['TPC3_npoints'])['TPC3_npoints']
@@ -360,6 +389,7 @@ def neutron_angles_data(datapath):
                                                     & (TPC4_length > global_tl)
                                                     )]
                                          ])
+            i += 1
 
     # Fold angles
     ch3_folded_phis = ch3_phis
@@ -535,7 +565,7 @@ def neutron_study_sim(simpath):
     truth_phis = []
 
     for f in os.listdir(simpath) :
-        if '.root' not in f or 'HER' in f : continue
+        if '.root' not in f or 'LER' in f : continue
         infile = simpath + f
         print(infile)
         data = root2rec(infile)
@@ -2758,6 +2788,7 @@ def compare_angles(datapath, simpath):
         len(sim_angles[8][1]) ) )
     print('DATA:', len(data_angles[0]))
 
+    '''
     ch3Theta_Touschek_hist = np.histogram(sim_angles[8][0], bins=theta_bins,
             range=[0,180])
 
@@ -3400,8 +3431,10 @@ def compare_angles(datapath, simpath):
     #ax2.legend(loc='best')
     #plt.savefig('ch4_theta_histoPDF_fit.pdf')
     g.savefig('ch4_phi_TFractionFitter.pdf')
+    '''
 
 
+    '''
     ### Angular distributions
     truth_thetabins = np.linspace(0,180,9)
     truth_phibins = np.linspace(-180,180,18)
@@ -3617,6 +3650,7 @@ def compare_angles(datapath, simpath):
     hx1.set_xlim(-10,190)
     #hx1.legend(loc='best')
     p.savefig('TPC4_theta_not_bpdirectvsmc.pdf')
+    '''
 
 
     # Normalizing [Touschek, Beamgas] weights by time and sim beam conditions
@@ -3633,16 +3667,16 @@ def compare_angles(datapath, simpath):
     weights[1] *= np.sum(subrun_BeamGas*subrun_times)
 
     print('Printing integrals of reweighted angular histograms ...')
-    print('Ch 3 Theta Touschek:', len(sim_angles[8][0]) * weights[0][0])
+    #print('Ch 3 Theta Touschek:', len(sim_angles[8][0]) * weights[0][0])
     print('Ch 3 Theta Beam Gas:', len(sim_angles[8][1]) * weights[1][0])
-    print('Ch 4 Theta Touschek:', len(sim_angles[9][0]) * weights[0][0])
+    #print('Ch 4 Theta Touschek:', len(sim_angles[9][0]) * weights[0][0])
     print('Ch 4 Theta Beam Gas:', len(sim_angles[9][1]) * weights[1][0])
-    print('Ch 3 Phi Touschek:', len(sim_angles[10][0]) * weights[0][0])
+    #print('Ch 3 Phi Touschek:', len(sim_angles[10][0]) * weights[0][0])
     print('Ch 3 Phi Beam Gas:', len(sim_angles[10][1]) * weights[1][0])
-    print('Ch 4 Phi Touschek:', len(sim_angles[11][0]) * weights[0][0])
+    #print('Ch 4 Phi Touschek:', len(sim_angles[11][0]) * weights[0][0])
     print('Ch 4 Phi Beam Gas:', len(sim_angles[11][1]) * weights[1][0])
 
-    print(subrun_Touschek * subrun_times)
+    #print(subrun_Touschek * subrun_times)
     print(subrun_BeamGas * subrun_times)
     input('well?')
 
@@ -4053,6 +4087,11 @@ def fit_study(datapath):
 
     truth_detnbs = []
 
+    vectors = []
+    xc_vectors = []
+    yc_vectors = []
+    e_s = []
+
     for file in os.listdir(datapath):
         if 'TPC' not in file : continue
         infile = datapath + file 
@@ -4069,7 +4108,6 @@ def fit_study(datapath):
             print('File is empty. Continuing ...')
             continue
 
-
         sumQ = np.concatenate([sumQ, (data.e_sum)])
         tlengths = np.concatenate([tlengths, (data.t_length)])
         thetas = np.concatenate([thetas, (data.theta)])
@@ -4085,13 +4123,17 @@ def fit_study(datapath):
         min_rets = np.concatenate([min_rets, data.min_ret])
         chi2s = np.concatenate([chi2s, data.chi2])
 
-    #for name in names:
-        truth_tree = file.split('.')[0]
-        data = root2rec(truth_file, truth_tree)
-        truth_theta = np.concatenate([truth_theta, data.truth_Theta])
-        truth_phi = np.concatenate([truth_phi, data.truth_phi])
+        truth_theta = np.concatenate([truth_theta, data.trueTheta])
+        truth_phi = np.concatenate([truth_phi, data.truePhi])
         truth_detnbs = np.concatenate([truth_detnbs, (data.detnb + 1) ])
-    
+
+        vectors = np.concatenate([vectors, data.vectors])
+        xc_vectors = np.concatenate([xc_vectors, data.c_vector[:,0]])
+        yc_vectors = np.concatenate([yc_vectors, data.c_vector[:,1]])
+        e_s = np.concatenate([e_s, data.e])
+
+        del data
+
     phi_errs *= (180.0/np.pi)
     theta_errs *= (180.0/np.pi)
     sumQ[detnbs==4] *= (4.0/3.0)
@@ -4099,20 +4141,201 @@ def fit_study(datapath):
     dQdx = sumQ/tlengths
     dQdx[tlengths == 0] = 0 
 
-    #truth_phi[detnbs==4] += 90.
-
     angle_sels = ( 
                  (detnbs == 3)
                  & (hitside == 0)
                  & (dQdx > 500.0)
                  & (npoints > 40)
                  & (min_rets == 0)
-                 & (thetas > 0)
-                 & (thetas < 180)
-                 & (np.abs(phis) < 360 )
-                 #& (tlengths > 2000)
+                 #& (thetas > 0)
+                 #& (thetas < 180)
+                 #& (np.abs(phis) < 360 )
+                 #& (tlengths > 250)
                  )
 
+    ### Head-tail
+    sel_vectors = vectors[angle_sels]
+
+    sel_Etruth = truthKE[angle_sels]
+    sel_Ereco = sumQ[angle_sels]/1500.*35.075*1e-6
+
+    sel_phis = phis[angle_sels]
+    rad_phis = np.radians(sel_phis)
+
+
+    constrained_phis = sel_phis % 360.0
+    constrained_phis[constrained_phis > 180.0] -= 360.0
+
+    #constrained_phis[constrained_phis > 180.0] -= 360.0
+
+    rad_phis = np.radians(constrained_phis)
+
+    sel_truth_phis = truth_phi[angle_sels]
+    #sel_truth_phis += 360.0
+    #sel_truth_phis = sel_truth_phis % 360.0
+    sel_tracklengths = tlengths[angle_sels]
+
+    for i in range(len(sel_phis)) :
+        head = np.zeros(2)
+
+        x = sel_vectors[i][:,0]
+        y = sel_vectors[i][:,1]
+
+        v_dir = ('x' if ( (np.max(x) - np.min(x)) >
+                (np.max(y) - np.min(y)) )  else 'y')
+
+        c_vec = np.array([0.,0.])
+        c_vec[0] = np.sum(x)/len(x)
+        c_vec[1] = np.sum(y)/len(y)
+
+        #print('\nDirection of length of vector is %s axis' % v_dir)
+        if v_dir == 'x':
+            plus_e_arr = e_s[angle_sels][i][x > c_vec[0]]
+            minus_e_arr = e_s[angle_sels][i][x < c_vec[0]]
+            plus_sum = np.sum(plus_e_arr)
+            minus_sum = np.sum(minus_e_arr)
+            head[0] = 1.0 if plus_sum > minus_sum else -1.0
+            #print('\nCharge in +x is:', np.sum(plus_e_arr))
+            #print('Charge in -x is:', np.sum(minus_e_arr))
+
+        elif v_dir == 'y':
+            plus_e_arr = e_s[angle_sels][i][y > c_vec[1]]
+            minus_e_arr = e_s[angle_sels][i][y < c_vec[1]]
+            plus_sum = np.sum(plus_e_arr)
+            minus_sum = np.sum(minus_e_arr)
+            head[1] = 1.0 if plus_sum > minus_sum else -1.0
+            #print('\nCharge in +y is:', np.sum(plus_e_arr))
+            #print('Charge in -y is:', np.sum(minus_e_arr))
+
+
+        x_tr = np.cos(rad_phis[i])
+        y_tr = np.sin(rad_phis[i])
+        v_tr = np.array([x_tr, y_tr])
+
+        #sel_phis[i] += 180.0 if np.dot(v_tr, head) < 0. else 0
+        if np.dot(v_tr, head) < 0:
+            #print('Found a track with wrong head-tail!')
+            #print('Head direction is:', head)
+            #print('Original phi_reco:', constrained_phis[i])
+
+            if constrained_phis[i] > 0 : constrained_phis[i] -= 180.
+            elif constrained_phis[i] < 0 : constrained_phis[i] += 180.
+
+            #constrained_phis[i] += 180.0
+            #constrained_phis[i] = constrained_phis[i] % 360.0
+            #constrained_phis[i] -= 360.0 if constrained_phis[i] > 180. else 0.
+
+
+            #print('Adjusted phi_reco:', constrained_phis[i])
+            #print('phi_truth:', sel_truth_phis[i])
+            #print('Track length:', sel_tracklengths[i])
+            #print('E_reco:', sel_Ereco[i])
+            #print('E_truth:', sel_Etruth[i])
+            ##plt.hist2d(x, y,
+            ##        bins=[np.linspace(0., 80.*250., 80),
+            ##              np.linspace(0., 336.*50., 336)],
+            ##        weights=[e_s[i],e_s[i]]
+            ##        )
+            #plt.hexbin(x, y, C=e_s[angle_sels][i])
+
+            ##plt.scatter(xc_vectors[angle_sels][i], yc_vectors[angle_sels][i])
+            #plt.scatter(c_vec[0], c_vec[1])
+            #plt.xlim(plt.xlim()[0]*0.8,plt.xlim()[1]*1.2)
+            #plt.ylim(plt.ylim()[0]*0.8,plt.ylim()[1]*1.2)
+            #plt.show()
+
+    print('Max constrained phi:', np.max(constrained_phis))
+    print('Min constrained phi:', np.min(constrained_phis))
+    print()
+    print('Max truth phi:', np.max(sel_truth_phis))
+    print('Min truth phi:', np.min(sel_truth_phis))
+    print()
+
+    sel_tracklengths = tlengths[angle_sels]
+
+    sel_bad_recophis = constrained_phis[np.abs(sel_truth_phis-constrained_phis) >
+            160]
+    sel_bad_truthphis = sel_truth_phis[np.abs(sel_truth_phis-constrained_phis) >
+            160]
+    sel_bad_tracklengths = sel_tracklengths[np.abs(sel_truth_phis-constrained_phis) >
+            160]
+
+    '''
+    print('Selected phis abs(ratio) > 10 :')
+    print(constrained_phis[np.abs(sel_truth_phis/constrained_phis) > 1e5])
+
+    print('Truth phis where abs(ratio) > 10 :')
+    print(sel_truth_phis[np.abs(sel_truth_phis/constrained_phis) > 10])
+
+    print('Track length where abs(ratio) > 10 :')
+    print(sel_tracklengths[np.abs(sel_truth_phis/constrained_phis) > 10])
+    '''
+
+    import seaborn as sns
+    import matplotlib as mpl
+    mpl.rcParams.update(mpl.rcParamsDefault)
+    style = belle2style_mpl.b2_style_mpl()
+    plt.style.use(style)
+
+    a = plt.figure()
+    ax00 = a.add_subplot(111)
+    ax00.hist([truth_phi[angle_sels], constrained_phis], bins=np.arange(-180.,180.,20),
+            label=['Truth','Reco'])
+    ax00.set_xlabel('$\phi$ {all selected}', ha='right', x=1.0)
+    ax00.legend(loc='best')
+    
+    b = plt.figure()
+    ax0 = b.add_subplot(111)
+
+    ax0.hist([sel_bad_truthphis,sel_bad_recophis],
+                  bins=np.arange(-180.,180.,20),
+                  label=['Truth','Reco'])
+    ax0.set_xlabel('$\phi$ {abs(truth-reco) > 160}',ha='right',x=1.0)
+    ax0.legend(loc='best')
+
+
+    f = plt.figure()
+    ax1 = f.add_subplot(111)
+    ax1.scatter(sel_tracklengths, np.abs(sel_truth_phis-constrained_phis))
+    ax1.set_xlabel(u'Track length [\u00B5m]', ha='right', x=1.0)
+    ax1.set_ylabel('$\phi$ difference (truth - reco)', ha='right', y=1.0)
+    ax1.set_xlim(0.0, 10000.0)
+    #ax1.set_ylim(-7.0,7.0)
+
+    #e = plt.figure()
+    #ax0 = e.add_subplot(111)
+    sns.jointplot(sel_tracklengths,
+            np.abs(sel_truth_phis-constrained_phis),stat_func=None)
+    #ax0.set_xlabel(u'Track length [\u00B5m]', ha='right', x=1.0)
+    #ax0.set_ylabel('$\phi$ difference (truth - reco)', ha='right', y=1.0)
+    #ax0.set_xlim(0.0, 10000.0)
+
+    g = plt.figure()
+    ax2 = g.add_subplot(111)
+    ax2.scatter(sel_Etruth, np.abs(sel_truth_phis-constrained_phis))
+    ax2.set_xlabel(u'Recoil Energy (truth)', ha='right', x=1.0)
+    ax2.set_ylabel('$\phi$ difference (truth - reco)', ha='right', y=1.0)
+    #ax2.set_xlim(0.0, 10000.0)
+
+    #d = plt.figure()
+    #ax0 = d.add_subplot(111)
+    sns.jointplot(sel_Etruth, np.abs(sel_truth_phis-constrained_phis),stat_func=None)
+    #ax0.set_xlabel(u'Recoil Energy (truth)', ha='right', x=1.0)
+    #ax0.set_ylabel('$\phi$ difference (truth - reco)', ha='right', y=1.0)
+
+    h = plt.figure()
+    ax3 = h.add_subplot(111)
+    ax3.scatter(sel_Ereco, np.abs(sel_truth_phis-constrained_phis))
+    ax3.set_xlabel(u'Recoil Energy (reco)', ha='right', x=1.0)
+    ax3.set_ylabel('$\phi$ difference (truth - reco)', ha='right', y=1.0)
+    #ax2.set_xlim(0.0, 10000.0)
+
+    #c = plt.figure()
+    #ax0 = c.add_subplot(111)
+    sns.jointplot(sel_Ereco, np.abs(sel_truth_phis-constrained_phis),stat_func=None)
+    plt.show()
+
+    '''
     folded_phis = phis
     folded_thetas = thetas
 
@@ -4160,6 +4383,9 @@ def fit_study(datapath):
     from collections import Counter
     c = Counter(pdg[angle_sels])
     print(c)
+    '''
+
+        
 
     ### Study of true fit error
 
@@ -4380,7 +4606,7 @@ def cut_study(simpath, datapath):
 
     for file in os.listdir(simpath):
         if file == 'old_ver_noLER': continue
-        #if 'HER' in file : continue
+        if 'HER' in file : continue
         infile = simpath + file 
         print(infile)
         try :
@@ -5957,7 +6183,7 @@ def main():
     global_tl = 2000.0
 
     #compare_toushek(v31_datapath, v54_simpath)
-    #compare_angles(v31_datapath, v52_simpath)
+    compare_angles(v31_datapath, v52_simpath)
     #compare_angles(v31_datapath, v50hrs_simpath)
 
     #energy_study(v31_datapath, v52_simpath)
@@ -5972,7 +6198,7 @@ def main():
 
     #cut_study_data(inpath) 
     #fit_study(v52_simpath)
-    fit_study(v50hrs_simpath)
+    #fit_study(v50hrs_simpath)
 
     #cut_study(v52_simpath, inpath)
     #cut_study(v50hrs_simpath, inpath)
