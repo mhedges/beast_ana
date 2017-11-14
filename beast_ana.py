@@ -6164,17 +6164,17 @@ def main():
     v2_datapath = str(home) + '/BEAST/data/v2/'
     v31_datapath = str(home) + '/BEAST/data/v3.1/'
     
-    v4_simpath = '/Users/BEASTzilla/BEAST/sim/sim_refitter/v4.1/'
-    v50_simpath = '/Users/BEASTzilla/BEAST/sim/sim_refitter/v5.0/'
+    v4_simpath = str(home) + '/BEAST/sim/sim_refitter/v4.1/'
+    v50_simpath = str(home) + '/BEAST/sim/sim_refitter/v5.0/'
 
-    v52_simpath = '/Users/BEASTzilla/BEAST/sim/sim_refitter/v5.2/FTFP_BERT_HP/'
+    v52_simpath = str(home) + '/BEAST/sim/sim_refitter/v5.2/FTFP_BERT_HP/'
 
-    v53_simpath = '/Users/BEASTzilla/BEAST/sim/v5.3/QGSP_BERT_HP/'
+    v53_simpath = str(home) + '/BEAST/sim/v5.3/QGSP_BERT_HP/'
 
     #v54_simpath = '/Users/BEASTzilla/BEAST/sim/v5.4/QGSP_BERT_HP/'
-    v54_simpath = '/Users/BEASTzilla/BEAST/sim/v5.4/FTFP_BERT_HP/'
+    v54_simpath = str(home) + '/BEAST/sim/v5.4/FTFP_BERT_HP/'
 
-    v50hrs_simpath = '/Users/BEASTzilla/BEAST/sim/sim_refitter/v5.X_50hr_neutrons/FTFP_BERT_HP/'
+    v50hrs_simpath = str(home) + '/BEAST/sim/sim_refitter/v5.X_50hr_neutrons/FTFP_BERT_HP/'
 
     inpath = str(home) + '/BEAST/data/TPC/tpc_toushekrun/2016-05-29/'
 
