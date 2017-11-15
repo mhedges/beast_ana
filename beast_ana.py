@@ -4154,6 +4154,7 @@ def fit_study(datapath):
                  )
 
     ### Head-tail
+    '''  Old method
     sel_vectors = vectors[angle_sels]
 
     sel_Etruth = truthKE[angle_sels]
@@ -4260,6 +4261,8 @@ def fit_study(datapath):
     sel_bad_tracklengths = sel_tracklengths[np.abs(sel_truth_phis-constrained_phis) >
             160]
 
+
+
     '''
     print('Selected phis abs(ratio) > 10 :')
     print(constrained_phis[np.abs(sel_truth_phis/constrained_phis) > 1e5])
@@ -4270,6 +4273,44 @@ def fit_study(datapath):
     print('Track length where abs(ratio) > 10 :')
     print(sel_tracklengths[np.abs(sel_truth_phis/constrained_phis) > 10])
     '''
+
+    '''
+
+    ### New way for Head-tail
+    for event in data :
+        if event.hitside != 0 : continue
+        phi = np.radians(event.phi)
+        theta = np.radians(event.theta)
+        t1 = np.array([np.cos(phi)*np.sin(theta), np.sin(phi)*np.sin(theta), np.cos(theta)])
+        
+        print np.dot(event.vectors, t1)    
+
+        upper_v = event.vectors[np.dot(event.vectors,t1) == np.max(np.dot(event.vectors,t1)) ][0]
+        lower_v = event.vectors[np.dot(event.vectors,t1) == np.min(np.dot(event.vectors,t1)) ][0]
+        
+        head_charge = 0
+        tail_charge = 0
+        for i in range(event.npoints) :
+            if np.abs( np.linalg.norm(upper_v) -
+                    np.linalg.norm(event.vectors[i]) ) < np.abs(
+                            np.linalg.norm(lower_v) - np.linalg.norm(event.vectors[i]) ) :
+                head_charge += event.e[i]
+            elif np.abs( np.linalg.norm(upper_v) -
+                    np.linalg.norm(event.vectors[i]) ) > np.abs(
+                            np.linalg.norm(lower_v) - np.linalg.norm(event.vectors[i]) ) :
+                tail_charge += event.e[i]
+                
+        print('Head charge:', head_charge)
+        print('Tail charge:', tail_charge)
+        print('Reco phi:', event.phi % 360)
+        print('Truth phi:', event.truePhi % 360)
+
+        if tail_charge > head_charge :
+            print('Head-tail found to be flipped!')
+            event.phi += 180.0
+            print('New reco phi:', event.phi % 360)
+        input('well?')
+
 
     import seaborn as sns
     import matplotlib as mpl
@@ -6182,11 +6223,11 @@ def main():
     global global_tl
     global_tl = 2000.0
 
-    #compare_toushek(v31_datapath, v54_simpath)
+    compare_toushek(v31_datapath, v54_simpath)
     compare_angles(v31_datapath, v52_simpath)
     #compare_angles(v31_datapath, v50hrs_simpath)
 
-    #energy_study(v31_datapath, v52_simpath)
+    energy_study(v31_datapath, v52_simpath)
     #energy_study(v31_datapath, v50hrs_simpath)
 
     #gain_study(inpath)
@@ -6198,7 +6239,7 @@ def main():
 
     #cut_study_data(inpath) 
     #fit_study(v52_simpath)
-    #fit_study(v50hrs_simpath)
+    fit_study(v50hrs_simpath)
 
     #cut_study(v52_simpath, inpath)
     #cut_study(v50hrs_simpath, inpath)
