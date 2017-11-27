@@ -83,19 +83,27 @@ def calc_sim_weights(datapath, simpath):
     subrun_IPsigYZ2 = []
     print('Getting weights for simulation for BEAST runs 10002-10004 ... ')
 
+    #runs = [
+    #        'BEAST_run5100.root',
+    #        'BEAST_run12006.root',
+    #        ]
+
     runs = [
-            'BEAST_run5100.root',
-            'BEAST_run12006.root',
+            'BEAST_run10002.root',
+            'BEAST_run10003.root',
+            'BEAST_run10004.root',
             ]
 
     for f in os.listdir(datapath) :
+        if f not in runs : continue
         fname = str(datapath) + str(f) 
         data = root2rec(fname, 'tout')
 
-        i=0
-        while (i<np.max(data.subrun)+1) :
-        #for i in range(np.max(data.subrun)+1) :
-            #if i == 0 : continue
+        #i=0
+        #while (i<np.max(data.subrun)+1) :
+
+        for i in range(np.max(data.subrun)+1) :
+            if i == 0 : continue
             P_avg = np.mean(data.SKB_LER_pressures_local_corrected[data.subrun==i])[0]
 
             LER_current = stretch(data[ (
@@ -132,7 +140,7 @@ def calc_sim_weights(datapath, simpath):
             subrun_IP.append(I_avg*P_avg)
             subrun_IPsigYZ2.append(I_avg/(P_avg*sigmaY_avg*Z_eff**2))
 
-            i+=1
+            #i+=1
     
     subrun_durations = np.array(subrun_durations)
     subrun_IPZ2 = np.array(subrun_IPZ2)
@@ -279,20 +287,20 @@ def neutron_angles_data(datapath):
                 ]
 
     ### For HER
-    runs = [
-            #'BEAST_run1004.root',
-            'BEAST_run2001.root',
-            'BEAST_run2002.root',
-            'BEAST_run2003.root',
-            'BEAST_run2004.root',
-            'BEAST_run2005.root',
-            #'BEAST_run2006.root',
-            'BEAST_run2007.root',
-            'BEAST_run2008.root',
-            'BEAST_run2009.root',
-            'BEAST_run5100.root',
-            'BEAST_run12006.root',
-            ]
+    #runs = [
+    #        #'BEAST_run1004.root',
+    #        'BEAST_run2001.root',
+    #        'BEAST_run2002.root',
+    #        'BEAST_run2003.root',
+    #        'BEAST_run2004.root',
+    #        'BEAST_run2005.root',
+    #        #'BEAST_run2006.root',
+    #        'BEAST_run2007.root',
+    #        'BEAST_run2008.root',
+    #        'BEAST_run2009.root',
+    #        'BEAST_run5100.root',
+    #        'BEAST_run12006.root',
+    #        ]
 
     for f in os.listdir(datapath):
         if f not in runs: continue
@@ -565,7 +573,7 @@ def neutron_study_sim(simpath):
     truth_phis = []
 
     for f in os.listdir(simpath) :
-        if '.root' not in f or 'LER' in f : continue
+        if '.root' not in f or 'HER' in f : continue
         infile = simpath + f
         print(infile)
         data = root2rec(infile)
@@ -1137,6 +1145,8 @@ def energy_study(datapath, simpath):
     gain2 = 50.0
     W = 35.075
 
+    runs = run_names('LER_ToushekTPC')
+
     if 'v3.1' not in datapath :
         data_hitsides = []
         data_Q = []
@@ -1204,8 +1214,10 @@ def energy_study(datapath, simpath):
         ch4_data_Q = []
 
         for f in os.listdir(datapath):
+            if str(f) not in runs: continue
             r_file = str(datapath) + str(f)
             data = root2rec(r_file, 'tout')
+            print(datapath + f)
 
             for i in range(np.max(data.subrun)+1) :
                 if i == 0 : continue
@@ -1262,8 +1274,8 @@ def energy_study(datapath, simpath):
                                                         (TPC3_PID_neutrons == 1)
                                                       & (TPC3_dEdx > 500.0)
                                                       & (TPC3_npoints > 40)
-                                                      & (TPC3_tracklengths >
-                                                          global_tl)
+                                                      #& (TPC3_tracklengths >
+                                                      #    global_tl)
                                                       )]
                                              ])
 
@@ -1272,8 +1284,8 @@ def energy_study(datapath, simpath):
                                                         (TPC4_PID_neutrons == 1)
                                                       & (TPC4_dEdx > 500.0)
                                                       & (TPC4_npoints > 40)
-                                                      & (TPC4_tracklengths >
-                                                          global_tl)
+                                                      #& (TPC4_tracklengths >
+                                                      #    global_tl)
                                                       )]
                                              ])
             ch3_data_E = ch3_data_Q/(gain1 * gain2) * W * 1E-3
@@ -1402,7 +1414,7 @@ def energy_study(datapath, simpath):
                 & (sim_min_rets == 0)
                 & (sim_dQdx > 500)
                 & (sim_npoints > 40)
-                & (sim_tlengths > global_tl)
+                #& (sim_tlengths > global_tl)
                 )
 
     ch4_touschek_sels = (
@@ -1414,7 +1426,7 @@ def energy_study(datapath, simpath):
                 & (sim_min_rets == 0)
                 & (sim_dQdx > 500)
                 & (sim_npoints > 40)
-                & (sim_tlengths > global_tl)
+                #& (sim_tlengths > global_tl)
                 )
 
     ch3_beamgas_sels = (
@@ -1426,7 +1438,7 @@ def energy_study(datapath, simpath):
                 & (sim_min_rets == 0)
                 & (sim_dQdx > 500)
                 & (sim_npoints > 40)
-                & (sim_tlengths > global_tl)
+                #& (sim_tlengths > global_tl)
                 )
 
     ch4_beamgas_sels = (
@@ -1438,7 +1450,7 @@ def energy_study(datapath, simpath):
                 & (sim_min_rets == 0)
                 & (sim_dQdx > 500)
                 & (sim_npoints > 40)
-                & (sim_tlengths > global_tl)
+                #& (sim_tlengths > global_tl)
                 )
 
     ### Debug
@@ -1522,14 +1534,14 @@ def energy_study(datapath, simpath):
     ch4_weighted_rate = [0,0]
 
     ch3_weighted_rate[0] = ( (subrun_Touschek * len(sim_E[ch3_touschek_sels]) ) /
-                        (36000.0 * 5.0 * 9090.91) )
+                        (3600.0 * 9090.91) )
     ch3_weighted_rate[1] = ( (subrun_BeamGas * len(sim_E[ch3_beamgas_sels]) ) /
-                        (36000.0 * 5.0 * 0.0097) )
+                        (3600.0 * 0.0097) )
 
     ch4_weighted_rate[0] = ( (subrun_Touschek * len(sim_E[ch4_touschek_sels]) ) /
-                        (36000.0 * 5.0 * 9090.91) )
+                        (3600.0 * 9090.91) )
     ch4_weighted_rate[1] = ( (subrun_BeamGas * len(sim_E[ch4_beamgas_sels]) ) /
-                        (36000.0 * 5.0 * 0.0097) )
+                        (3600.0 * 0.0097) )
 
     print(ch3_weighted_rate)
     print(ch4_weighted_rate)
@@ -2518,11 +2530,11 @@ def compare_toushek(datapath, simpath):
 
     ch3_weights[0] = subrun_Touschek *(
             (ch3_touschek_unweighted_rate)/
-                    (36000.0*9090.91) )
+                    (3600.0*9090.91) )
 
     ch3_weights[1] = subrun_BeamGas *  (
             (ch3_beamgas_unweighted_rate)/
-                    (36000.0*0.0097) ) 
+                    (3600.0*0.0097) ) 
 
     ch3_weights = np.array(ch3_weights)
 
@@ -2536,11 +2548,11 @@ def compare_toushek(datapath, simpath):
 
     ch4_weights[0] = subrun_Touschek * (
             (ch4_touschek_unweighted_rate)/
-                    (36000.0*9090.91) )
+                    (3600.0*9090.91) )
 
     ch4_weights[1] = subrun_BeamGas * (
             (ch4_beamgas_unweighted_rate)/
-                    (36000.0*0.0097) ) 
+                    (3600.0*0.0097) ) 
 
     ch4_weighted_xvals = TouschekPlot_vals[0]
 
@@ -2788,7 +2800,6 @@ def compare_angles(datapath, simpath):
         len(sim_angles[8][1]) ) )
     print('DATA:', len(data_angles[0]))
 
-    '''
     ch3Theta_Touschek_hist = np.histogram(sim_angles[8][0], bins=theta_bins,
             range=[0,180])
 
@@ -3431,10 +3442,8 @@ def compare_angles(datapath, simpath):
     #ax2.legend(loc='best')
     #plt.savefig('ch4_theta_histoPDF_fit.pdf')
     g.savefig('ch4_phi_TFractionFitter.pdf')
-    '''
 
 
-    '''
     ### Angular distributions
     truth_thetabins = np.linspace(0,180,9)
     truth_phibins = np.linspace(-180,180,18)
@@ -3650,7 +3659,6 @@ def compare_angles(datapath, simpath):
     hx1.set_xlim(-10,190)
     #hx1.legend(loc='best')
     p.savefig('TPC4_theta_not_bpdirectvsmc.pdf')
-    '''
 
 
     # Normalizing [Touschek, Beamgas] weights by time and sim beam conditions
@@ -3659,27 +3667,12 @@ def compare_angles(datapath, simpath):
     subrun_times, subrun_BeamGas, subrun_Touschek, _ = calc_sim_weights(beast_datapath, simpath)
 
     weights=[ 
-            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[8][0])),
-            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[8][1])),
+            np.array([1.0/(3600.0*9090.91)]*len(sim_angles[8][0])),
+            np.array([1.0/(3600.0*0.0097)]*len(sim_angles[8][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
     weights[1] *= np.sum(subrun_BeamGas*subrun_times)
-
-    print('Printing integrals of reweighted angular histograms ...')
-    #print('Ch 3 Theta Touschek:', len(sim_angles[8][0]) * weights[0][0])
-    print('Ch 3 Theta Beam Gas:', len(sim_angles[8][1]) * weights[1][0])
-    #print('Ch 4 Theta Touschek:', len(sim_angles[9][0]) * weights[0][0])
-    print('Ch 4 Theta Beam Gas:', len(sim_angles[9][1]) * weights[1][0])
-    #print('Ch 3 Phi Touschek:', len(sim_angles[10][0]) * weights[0][0])
-    print('Ch 3 Phi Beam Gas:', len(sim_angles[10][1]) * weights[1][0])
-    #print('Ch 4 Phi Touschek:', len(sim_angles[11][0]) * weights[0][0])
-    print('Ch 4 Phi Beam Gas:', len(sim_angles[11][1]) * weights[1][0])
-
-    #print(subrun_Touschek * subrun_times)
-    print(subrun_BeamGas * subrun_times)
-    input('well?')
-
 
     (n, bins, patches) = plt.hist(data_angles[0], bins=theta_bins,
             range=[0,180])
@@ -3699,12 +3692,13 @@ def compare_angles(datapath, simpath):
     f.savefig('TPC3_theta_datavsmc_sim_weighted.pdf')
 
     weights=[ 
-            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[9][0])),
-            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[9][1])),
+            np.array([1.0/(3600.0*9090.91)]*len(sim_angles[9][0])),
+            np.array([1.0/(3600.0*0.0097)]*len(sim_angles[9][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
     weights[1] *= np.sum(subrun_BeamGas*subrun_times)
+
     (n, bins, patches) = plt.hist(data_angles[1], bins=theta_bins,
             range=[0,180])
             
@@ -3729,8 +3723,8 @@ def compare_angles(datapath, simpath):
     g.savefig('TPC4_theta_datavsmc_sim_weighted.pdf')
 
     weights=[ 
-            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[10][0])),
-            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[10][1])),
+            np.array([1.0/(3600.0*9090.91)]*len(sim_angles[10][0])),
+            np.array([1.0/(3600.0*0.0097)]*len(sim_angles[10][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
@@ -3751,19 +3745,20 @@ def compare_angles(datapath, simpath):
     cx1.set_xlabel('TPC 3 $\phi$ [$^{\circ}$]',ha='right',x=1.0)
     cx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     cx1.set_xlim(-100,100)
-    cx1.set_ylim(0, 100)
+    #cx1.set_ylim(0, 100)
     cx1.legend(loc='best')
 
     h.savefig('TPC3_phi_datavsmc_sim_weighted.pdf')
 
 
     weights=[ 
-            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[11][0])),
-            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[11][1])),
+            np.array([1.0/(3600.0*9090.91)]*len(sim_angles[11][0])),
+            np.array([1.0/(3600.0*0.0097)]*len(sim_angles[11][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
     weights[1] *= np.sum(subrun_BeamGas*subrun_times)
+
     (n, bins, patches) = plt.hist(data_angles[3], bins=phi_bins, range=[-90,90])
     k = plt.figure()
     dx1 = k.add_subplot(111)
@@ -3785,8 +3780,8 @@ def compare_angles(datapath, simpath):
     k.savefig('TPC4_phi_datavsmc_sim_weighted.pdf')
 
     weights=[ 
-            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[12][0])),
-            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[12][1])),
+            np.array([1.0/(3600.0*9090.91)]*len(sim_angles[12][0])),
+            np.array([1.0/(3600.0*0.0097)]*len(sim_angles[12][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
@@ -3804,13 +3799,13 @@ def compare_angles(datapath, simpath):
     ex1.set_xlabel('TPC 3 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
     ex1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     ex1.set_xlim(-10,190)
-    ex1.set_ylim(0,55)
+    ex1.set_ylim(0,550)
     ex1.legend(loc='best')
     l.savefig('TPC3_theta_bpdirectvsmc_sim_weighted.pdf')
 
     weights=[ 
-            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[13][0])),
-            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[13][1])),
+            np.array([1.0/(3600.0*9090.91)]*len(sim_angles[13][0])),
+            np.array([1.0/(3600.0*0.0097)]*len(sim_angles[13][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
@@ -3829,13 +3824,13 @@ def compare_angles(datapath, simpath):
     fx1.set_xlabel('TPC 3 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
     fx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     fx1.set_xlim(-10,190)
-    fx1.set_ylim(0,55)
+    fx1.set_ylim(0,550)
     #fx1.legend(loc='best')
     m.savefig('TPC3_theta_not_bpdirectvsmc_sim_weighted.pdf')
 
     weights=[ 
-            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[14][0])),
-            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[14][1])),
+            np.array([1.0/(3600.0*9090.91)]*len(sim_angles[14][0])),
+            np.array([1.0/(3600.0*0.0097)]*len(sim_angles[14][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
@@ -3853,13 +3848,13 @@ def compare_angles(datapath, simpath):
     gx1.set_xlabel('TPC 4 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
     gx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     gx1.set_xlim(-10,190)
-    gx1.set_ylim(0,55)
+    gx1.set_ylim(0,550)
     #gx1.legend(loc='best')
     o.savefig('TPC4_theta_bpdirectvsmc_sim_weighted.pdf')
 
     weights=[ 
-            np.array([1.0/(5.0*36000.0*9090.91)]*len(sim_angles[15][0])),
-            np.array([1.0/(5.0*36000.0*0.0097)]*len(sim_angles[15][1])),
+            np.array([1.0/(3600.0*9090.91)]*len(sim_angles[15][0])),
+            np.array([1.0/(3600.0*0.0097)]*len(sim_angles[15][1])),
             ]
 
     weights[0] *= np.sum(subrun_Touschek*subrun_times)
@@ -3877,7 +3872,7 @@ def compare_angles(datapath, simpath):
     hx1.set_xlabel('TPC 4 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
     hx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     hx1.set_xlim(-10,190)
-    hx1.set_ylim(0,55)
+    hx1.set_ylim(0,550)
     #hx1.legend(loc='best')
     p.savefig('TPC4_theta_not_bpdirectvsmc_sim_weighted.pdf')
 
@@ -4092,15 +4087,16 @@ def fit_study(datapath):
     yc_vectors = []
     e_s = []
 
+    headtail_correct = []
+
     for file in os.listdir(datapath):
         if 'TPC' not in file : continue
         infile = datapath + file 
     #for name in names:
     #    infile = datapath + name + str('.root')
-        #if '10hr' not in file : continue
 
-        ### For 100hrs sim
-        if '10hrs' not in file : continue
+        #### For 100hrs sim
+        #if '10hrs' not in file : continue
         print(infile)
         try : 
             data = root2rec(infile)
@@ -4153,165 +4149,70 @@ def fit_study(datapath):
                  #& (tlengths > 250)
                  )
 
+    #print('Selected phis abs(ratio) > 10 :')
+    #print(constrained_phis[np.abs(sel_truth_phis/constrained_phis) > 1e5])
+
+    #print('Truth phis where abs(ratio) > 10 :')
+    #print(sel_truth_phis[np.abs(sel_truth_phis/constrained_phis) > 10])
+
+    #print('Track length where abs(ratio) > 10 :')
+    #print(sel_tracklengths[np.abs(sel_truth_phis/constrained_phis) > 10])
+
     ### Head-tail
-    '''  Old method
-    sel_vectors = vectors[angle_sels]
+    sim = np.array([
+                   (hitside[angle_sels]),
+                   (phis[angle_sels]),
+                   (thetas[angle_sels]),
+                   (vectors[angle_sels]),
+                   (e_s[angle_sels]),
+                   (truth_theta[angle_sels]),
+                   (truth_phi[angle_sels]),
+                   (npoints[angle_sels]),
+                   ],
+                   dtype = 
+                           [('hitside', np.int),
+                            ('phi', np.float),
+                            ('theta', np.float),
+                            ('vectors', 0),
+                            ('e_s', 0),
+                            ('trueTheta', np.float),
+                            ('truePhi', np.float),
+                            ('npoints', np.int),
+                            ]
+                  )
 
-    sel_Etruth = truthKE[angle_sels]
-    sel_Ereco = sumQ[angle_sels]/1500.*35.075*1e-6
+    print(sim)
+    input('well?')
 
-    sel_phis = phis[angle_sels]
-    rad_phis = np.radians(sel_phis)
-
-
-    constrained_phis = sel_phis % 360.0
-    constrained_phis[constrained_phis > 180.0] -= 360.0
-
-    #constrained_phis[constrained_phis > 180.0] -= 360.0
-
-    rad_phis = np.radians(constrained_phis)
-
-    sel_truth_phis = truth_phi[angle_sels]
-    #sel_truth_phis += 360.0
-    #sel_truth_phis = sel_truth_phis % 360.0
-    sel_tracklengths = tlengths[angle_sels]
-
-    for i in range(len(sel_phis)) :
-        head = np.zeros(2)
-
-        x = sel_vectors[i][:,0]
-        y = sel_vectors[i][:,1]
-
-        v_dir = ('x' if ( (np.max(x) - np.min(x)) >
-                (np.max(y) - np.min(y)) )  else 'y')
-
-        c_vec = np.array([0.,0.])
-        c_vec[0] = np.sum(x)/len(x)
-        c_vec[1] = np.sum(y)/len(y)
-
-        #print('\nDirection of length of vector is %s axis' % v_dir)
-        if v_dir == 'x':
-            plus_e_arr = e_s[angle_sels][i][x > c_vec[0]]
-            minus_e_arr = e_s[angle_sels][i][x < c_vec[0]]
-            plus_sum = np.sum(plus_e_arr)
-            minus_sum = np.sum(minus_e_arr)
-            head[0] = 1.0 if plus_sum > minus_sum else -1.0
-            #print('\nCharge in +x is:', np.sum(plus_e_arr))
-            #print('Charge in -x is:', np.sum(minus_e_arr))
-
-        elif v_dir == 'y':
-            plus_e_arr = e_s[angle_sels][i][y > c_vec[1]]
-            minus_e_arr = e_s[angle_sels][i][y < c_vec[1]]
-            plus_sum = np.sum(plus_e_arr)
-            minus_sum = np.sum(minus_e_arr)
-            head[1] = 1.0 if plus_sum > minus_sum else -1.0
-            #print('\nCharge in +y is:', np.sum(plus_e_arr))
-            #print('Charge in -y is:', np.sum(minus_e_arr))
-
-
-        x_tr = np.cos(rad_phis[i])
-        y_tr = np.sin(rad_phis[i])
-        v_tr = np.array([x_tr, y_tr])
-
-        #sel_phis[i] += 180.0 if np.dot(v_tr, head) < 0. else 0
-        if np.dot(v_tr, head) < 0:
-            #print('Found a track with wrong head-tail!')
-            #print('Head direction is:', head)
-            #print('Original phi_reco:', constrained_phis[i])
-
-            if constrained_phis[i] > 0 : constrained_phis[i] -= 180.
-            elif constrained_phis[i] < 0 : constrained_phis[i] += 180.
-
-            #constrained_phis[i] += 180.0
-            #constrained_phis[i] = constrained_phis[i] % 360.0
-            #constrained_phis[i] -= 360.0 if constrained_phis[i] > 180. else 0.
-
-
-            #print('Adjusted phi_reco:', constrained_phis[i])
-            #print('phi_truth:', sel_truth_phis[i])
-            #print('Track length:', sel_tracklengths[i])
-            #print('E_reco:', sel_Ereco[i])
-            #print('E_truth:', sel_Etruth[i])
-            ##plt.hist2d(x, y,
-            ##        bins=[np.linspace(0., 80.*250., 80),
-            ##              np.linspace(0., 336.*50., 336)],
-            ##        weights=[e_s[i],e_s[i]]
-            ##        )
-            #plt.hexbin(x, y, C=e_s[angle_sels][i])
-
-            ##plt.scatter(xc_vectors[angle_sels][i], yc_vectors[angle_sels][i])
-            #plt.scatter(c_vec[0], c_vec[1])
-            #plt.xlim(plt.xlim()[0]*0.8,plt.xlim()[1]*1.2)
-            #plt.ylim(plt.ylim()[0]*0.8,plt.ylim()[1]*1.2)
-            #plt.show()
-
-    print('Max constrained phi:', np.max(constrained_phis))
-    print('Min constrained phi:', np.min(constrained_phis))
-    print()
-    print('Max truth phi:', np.max(sel_truth_phis))
-    print('Min truth phi:', np.min(sel_truth_phis))
-    print()
-
-    sel_tracklengths = tlengths[angle_sels]
-
-    sel_bad_recophis = constrained_phis[np.abs(sel_truth_phis-constrained_phis) >
-            160]
-    sel_bad_truthphis = sel_truth_phis[np.abs(sel_truth_phis-constrained_phis) >
-            160]
-    sel_bad_tracklengths = sel_tracklengths[np.abs(sel_truth_phis-constrained_phis) >
-            160]
-
-
-
-    '''
-    print('Selected phis abs(ratio) > 10 :')
-    print(constrained_phis[np.abs(sel_truth_phis/constrained_phis) > 1e5])
-
-    print('Truth phis where abs(ratio) > 10 :')
-    print(sel_truth_phis[np.abs(sel_truth_phis/constrained_phis) > 10])
-
-    print('Track length where abs(ratio) > 10 :')
-    print(sel_tracklengths[np.abs(sel_truth_phis/constrained_phis) > 10])
-    '''
-
-    '''
-
-    ### New way for Head-tail
-    for event in data :
+    for event in sim :
         if event.hitside != 0 : continue
         phi = np.radians(event.phi)
         theta = np.radians(event.theta)
         t1 = np.array([np.cos(phi)*np.sin(theta), np.sin(phi)*np.sin(theta), np.cos(theta)])
-        
-        print np.dot(event.vectors, t1)    
-
+    
         upper_v = event.vectors[np.dot(event.vectors,t1) == np.max(np.dot(event.vectors,t1)) ][0]
         lower_v = event.vectors[np.dot(event.vectors,t1) == np.min(np.dot(event.vectors,t1)) ][0]
-        
+    
         head_charge = 0
         tail_charge = 0
         for i in range(event.npoints) :
             if np.abs( np.linalg.norm(upper_v) -
                     np.linalg.norm(event.vectors[i]) ) < np.abs(
-                            np.linalg.norm(lower_v) - np.linalg.norm(event.vectors[i]) ) :
+                            np.linalg.norm(lower_v) -
+                            np.linalg.norm(event.vectors[i]) ) :
                 head_charge += event.e[i]
             elif np.abs( np.linalg.norm(upper_v) -
                     np.linalg.norm(event.vectors[i]) ) > np.abs(
-                            np.linalg.norm(lower_v) - np.linalg.norm(event.vectors[i]) ) :
+                            np.linalg.norm(lower_v) -
+                            np.linalg.norm(event.vectors[i]) ) :
                 tail_charge += event.e[i]
-                
-        print('Head charge:', head_charge)
-        print('Tail charge:', tail_charge)
-        print('Reco phi:', event.phi % 360)
-        print('Truth phi:', event.truePhi % 360)
-
+        
         if tail_charge > head_charge :
-            print('Head-tail found to be flipped!')
-            event.phi += 180.0
-            print('New reco phi:', event.phi % 360)
-        input('well?')
+            event.phi += 180.
+            event.theta += 180.
 
 
+    '''
     import seaborn as sns
     import matplotlib as mpl
     mpl.rcParams.update(mpl.rcParamsDefault)
@@ -4333,6 +4234,7 @@ def fit_study(datapath):
                   label=['Truth','Reco'])
     ax0.set_xlabel('$\phi$ {abs(truth-reco) > 160}',ha='right',x=1.0)
     ax0.legend(loc='best')
+    '''
 
 
     f = plt.figure()
@@ -6217,17 +6119,19 @@ def main():
 
     v50hrs_simpath = str(home) + '/BEAST/sim/sim_refitter/v5.X_50hr_neutrons/FTFP_BERT_HP/'
 
+    v7_simpath = str(home) + '/BEAST/sim/sim_refitter/v7/FTFP_BERT_HP/'
+
     inpath = str(home) + '/BEAST/data/TPC/tpc_toushekrun/2016-05-29/'
 
     # Set global variables for cuts to be used
     global global_tl
     global_tl = 2000.0
 
-    compare_toushek(v31_datapath, v54_simpath)
-    compare_angles(v31_datapath, v52_simpath)
+    #compare_toushek(v31_datapath, v54_simpath)
+    #compare_angles(v31_datapath, v52_simpath)
     #compare_angles(v31_datapath, v50hrs_simpath)
 
-    energy_study(v31_datapath, v52_simpath)
+    #energy_study(v31_datapath, v52_simpath)
     #energy_study(v31_datapath, v50hrs_simpath)
 
     #gain_study(inpath)
@@ -6238,8 +6142,8 @@ def main():
     #event_inspection(v52_simpath)
 
     #cut_study_data(inpath) 
-    #fit_study(v52_simpath)
-    fit_study(v50hrs_simpath)
+    fit_study(v52_simpath)
+    #fit_study(v50hrs_simpath)
 
     #cut_study(v52_simpath, inpath)
     #cut_study(v50hrs_simpath, inpath)
