@@ -1,3 +1,5 @@
+import emoji
+
 import os
 import sys
 
@@ -147,9 +149,11 @@ def calc_sim_weights(datapath, simpath, beam):
                 subrun_IPsigYZ2.append(I_avg/(P_avg*sigmaY_avg*Z_eff**2))
 
         elif beam == 'HER' :
-            P_avg = np.mean(data.SKB_HER_pressures_local_corrected)[3]
+            #P_init_avg = np.mean(data.SKB_HER_pressures_local_corrected)[3]
+            P_init_avg = np.mean(data.SKB_HER_pressures_local)[3]
             P_base = 1.61614E-8
-            P_avg = 3.*P_avg - 2.*P_base
+            P_avg = 3.*P_init_avg - 2.*P_base
+            #P_avg = P_init_avg
 
             HER_current = stretch(data[ (
                                         (data.SKB_HER_injectionFlag_safe==0)
@@ -213,9 +217,11 @@ def neutron_rate_data(datapath):
 
     x_errs = []
 
-    ch3_rate = []
+    ch3_count = []
+    #ch3_rate = []
     ch3_errs = []
-    ch4_rate = []
+    ch4_count = []
+    #ch4_rate = []
     ch4_errs = []
 
     lengths = []
@@ -279,27 +285,51 @@ def neutron_rate_data(datapath):
                                     (TPC3_dEdx * 1.18 > 500.0)
                                     & (TPC3_npoints > 40)
                                     & (TPC3_length > global_tl)
-                                    )].sum()/len(data[data.subrun == i])
+                                    )].sum() #/len(data[data.subrun == i])
             ch4 = TPC4_PID_neutrons[(
                                     (TPC4_dEdx * 1.64 > 500.0)
                                     & (TPC4_npoints > 40)
                                     & (TPC4_length > global_tl)
-                                    )].sum()/len(data[data.subrun == i])
-            lengths.append(len(data[data.subrun == i]))
+                                    )].sum() #/len(data[data.subrun == i])
 
-            ch3_rate.append(ch3)
-            ch3_errs.append((len(data[data.subrun == i])))
-            ch4_rate.append(ch4)
-            ch4_errs.append((len(data[data.subrun == i])))
+            length = len(data[data.subrun == i])
+            lengths.append(length)
 
-
-    ch3_rate = np.array(ch3_rate)
-    ch4_rate = np.array(ch4_rate)
-
-    ch3_errs = np.array(ch3_errs)
-    ch4_errs = np.array(ch4_errs)
+            ch3_count.append(ch3)
+            #ch3_errs.append((len(data[data.subrun == i])))
+            ch4_count.append(ch4)
+            #ch4_errs.append((len(data[data.subrun == i])))
 
     lengths = np.array(lengths)
+    ch3_count = np.array(ch3_count)
+    ch4_count = np.array(ch4_count)
+
+    # Correct for TPC dead-time in each channel (calculated elsewhere)
+    ch3_deadtime = np.array([39., 314, 52, 43, 39., 174., 52.,
+                             65., 52., 52., 52., 52., 39., 367.,
+                             39., 52.])
+
+    ch4_deadtime = np.array([42., 56., 42., 45., 226, 84., 56.,
+                             58., 56., 70., 70., 56., 42., 170.,
+                             28., 516.])
+
+    ch3_rate = ch3_count/(lengths - ch3_deadtime)
+    ch4_rate = ch4_count/(lengths - ch4_deadtime)
+
+    ch3_errs = lengths - ch3_deadtime
+    ch4_errs = lengths - ch4_deadtime
+
+    #ch3_rate = np.array(ch3_rate)
+    #ch4_rate = np.array(ch4_rate)
+
+    #ch3_errs = np.array(ch3_errs)
+    #ch4_errs = np.array(ch4_errs)
+
+    print(ch3_count)
+    print(np.sqrt(ch3_count))
+    print(ch4_count)
+    print(np.sqrt(ch4_count))
+
     return ch3_rate, ch3_errs, ch4_rate, ch4_errs
 
 
@@ -1503,8 +1533,8 @@ def energy_study(datapath, simpath, beam):
 
 
     print('Printing data arrays ... ')
-    print(len(ch3_data_E))
-    print(len(ch4_data_E))
+    print('Number of events in TPC 3:', len(ch3_data_E))
+    print('Number of events in TPC 4:', len(ch4_data_E))
 
 
     ### Populate simulation arrays
@@ -2711,6 +2741,7 @@ def compare_toushek(datapath, simpath):
     data_toushek = neutron_rate_data(datapath)
     print('Printing rates and subrun durations from data ... ')
     print(data_toushek)
+    input('well?')
 
     print('Printing total number of neutrons detected in data ... ')
     print('Ch 3:', (data_toushek[0] * data_toushek[1]).sum())
@@ -2826,11 +2857,10 @@ def compare_toushek(datapath, simpath):
     ch3_weighted_sim_minu = iminuit.Minuit(ch3_weighted_sim_chi2)
     ch3_weighted_sim_minu.migrad()
 
-
+    print('Calculating sensitivies for ch. 4 in weighted sim ...\n')
     ch4_weighted_rates = np.array(ch4_weights[0]+ch4_weights[1])
     ch4_weighted_rates = (ch3_weighted_rates *
                     (ch4_touschek_unweighted_rate/ch3_touschek_unweighted_rate) )
-    print('Calculating sensitivies for ch. 4 in weighted sim ...\n')
     ch4_weighted_sim_chi2 = probfit.Chi2Regression(probfit.linear,
             x=ch4_weighted_xvals,
             y=(ch4_weighted_rates)/exp_IPZ2,
@@ -2940,10 +2970,11 @@ def compare_toushek(datapath, simpath):
                 fmt='^',
                 #ms=6.2,
                 color='C0',
-                #mec='C0',
+                mec='C0',
                 mfc='none',
                 mew=1.0,
-                label='TPC 3 MC')
+                label='TPC 3 MC',
+                )
 
     ax1.errorbar(
                 ch4_weighted_xvals,
@@ -4091,7 +4122,7 @@ def compare_angles(datapath, simpath, beam):
     ex1.set_xlabel('TPC 3 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
     ex1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     ex1.set_xlim(-10,190)
-    #ex1.set_ylim(0,550)
+    ex1.set_ylim(0,75)
     ex1.legend(loc='best')
     l.savefig('TPC3_theta_bpdirectvsmc_sim_weighted.pdf')
 
@@ -4122,7 +4153,7 @@ def compare_angles(datapath, simpath, beam):
     fx1.set_xlabel('TPC 3 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
     fx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     fx1.set_xlim(-10,190)
-    #fx1.set_ylim(0,550)
+    fx1.set_ylim(0,75)
     #fx1.legend(loc='best')
     m.savefig('TPC3_theta_not_bpdirectvsmc_sim_weighted.pdf')
 
@@ -4152,7 +4183,7 @@ def compare_angles(datapath, simpath, beam):
     gx1.set_xlabel('TPC 4 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
     gx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     gx1.set_xlim(-10,190)
-    #gx1.set_ylim(0,550)
+    gx1.set_ylim(0,75)
     #gx1.legend(loc='best')
     o.savefig('TPC4_theta_bpdirectvsmc_sim_weighted.pdf')
 
@@ -4182,7 +4213,7 @@ def compare_angles(datapath, simpath, beam):
     hx1.set_xlabel('TPC 4 $\\theta$ [$^{\circ}$]',ha='right',x=1.0)
     hx1.set_ylabel(u'Events per 20\u00B0',ha='right',y=1.0)
     hx1.set_xlim(-10,190)
-    #hx1.set_ylim(0,550)
+    hx1.set_ylim(0,75)
     #hx1.legend(loc='best')
     p.savefig('TPC4_theta_not_bpdirectvsmc_sim_weighted.pdf')
 
@@ -6509,11 +6540,11 @@ def main():
     compare_toushek(v31_datapath, v7_simpath)
 
     #compare_angles(v31_datapath, v52_simpath)
-    compare_angles(v31_datapath, v7_simpath, beam='HER')
+    #compare_angles(v31_datapath, v7_simpath, beam='LER')
 
     #energy_study(v31_datapath, v52_simpath)
     #energy_study(v31_datapath, v50hrs_simpath)
-    energy_study(v31_datapath, v7_simpath, beam='HER')
+    #energy_study(v31_datapath, v7_simpath, beam='HER')
 
     #gain_study(inpath)
     #energy_eff_study(inpath)
@@ -6534,7 +6565,7 @@ def main():
     #energy_cal(v50_simpath, ler_inpath)
     #energy_cal(v50_simpath, her_inpath)
 
-    #hitOR_study(v52_simpath, inpath)
+    hitOR_study(v52_simpath, ler_inpath)
     
 if __name__ == "__main__":
     main()
