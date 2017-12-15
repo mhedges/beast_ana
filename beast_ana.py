@@ -305,13 +305,13 @@ def neutron_rate_data(datapath):
     ch4_count = np.array(ch4_count)
 
     # Correct for TPC dead-time in each channel (calculated elsewhere)
-    ch3_deadtime = np.array([39., 314, 52, 43, 39., 174., 52.,
-                             65., 52., 52., 52., 52., 39., 367.,
-                             39., 52.])
+    ch3_deadtime = np.array([36., 311., 48., 48., 36., 170., 47.,
+                             60., 58., 48., 48., 48., 162., 101.,
+                             36., 49.])
 
-    ch4_deadtime = np.array([42., 56., 42., 45., 226, 84., 56.,
-                             58., 56., 70., 70., 56., 42., 170.,
-                             28., 516.])
+    ch4_deadtime = np.array([48., 52., 38., 41., 222., 78., 51.,
+                             54., 52., 51., 64., 51., 38., 165.,
+                             65., 360.])
 
     ch3_rate = ch3_count/(lengths - ch3_deadtime)
     ch4_rate = ch4_count/(lengths - ch4_deadtime)
@@ -2741,7 +2741,6 @@ def compare_toushek(datapath, simpath):
     data_toushek = neutron_rate_data(datapath)
     print('Printing rates and subrun durations from data ... ')
     print(data_toushek)
-    input('well?')
 
     print('Printing total number of neutrons detected in data ... ')
     print('Ch 3:', (data_toushek[0] * data_toushek[1]).sum())
@@ -2832,10 +2831,48 @@ def compare_toushek(datapath, simpath):
     #data_toushek = np.array(data_toushek)
     #sim_toushek = np.array(sim_toushek)
 
+    # Calculate errors and fit
+    ch3_data_error = np.zeros(len(exp_IPZ2))
+    ch4_data_error = np.zeros(len(exp_IPZ2))
+
+    run_10002_rms = np.std(exp_IPZ2[:6])/exp_IPZ2[:6]
+    ch3_10002_rms = 1./np.sqrt(data_toushek[0][:6]*data_toushek[1][:6])
+    ch3_data_error[:6] += np.sqrt(run_10002_rms**2 + ch3_10002_rms**2)
+
+    run_10003_rms = np.std(exp_IPZ2[6:13])/exp_IPZ2[6:13]
+    ch3_10003_rms = 1./np.sqrt(data_toushek[0][6:13]*data_toushek[1][6:13])
+    ch3_data_error[6:13] += np.sqrt(run_10003_rms**2 + ch3_10003_rms**2)
+
+    run_10004_rms = np.std(exp_IPZ2[13:])/exp_IPZ2[13:]
+    ch3_10004_rms = 1./np.sqrt(data_toushek[0][13:]*data_toushek[1][13:])
+    ch3_data_error[13:] += np.sqrt(run_10004_rms**2 + ch3_10004_rms**2)
+
+    ch4_10002_rms = 1./np.sqrt(data_toushek[2][:6]*data_toushek[3][:6])
+    ch4_data_error[:6] += np.sqrt(run_10002_rms**2 + ch3_10002_rms**2)
+
+    ch4_10003_rms = 1./np.sqrt(data_toushek[2][6:14]*data_toushek[3][6:14])
+    ch4_data_error[6:13] += np.sqrt(run_10003_rms**2 + ch3_10003_rms**2)
+
+    ch4_10004_rms = 1./np.sqrt(data_toushek[2][14:]*data_toushek[3][14:])
+    ch4_data_error[13:] += np.sqrt(run_10004_rms**2 + ch3_10004_rms**2)
+
+    print()
+    print('TPC 3 neutrons:', data_toushek[0]*data_toushek[1])
+    print('TPC 4 neutrons:', data_toushek[2]*data_toushek[3])
+    print('IPZ2', exp_IPZ2)
+    print('IPZ2 rms', run_10002_rms)
+    print('Run 10002 IPZ2 rms', run_10002_rms)
+    print('Run 10003 IPZ2 rms', run_10003_rms)
+    print('Run 10004 IPZ2 rms', run_10004_rms)
+    print('Propegate TPC 3 N error with IPZ2 rms', ch3_data_error)
+    print('rate/IPZ2/err', data_toushek[0]/exp_IPZ2/ch3_data_error)
+    print()
+
     ch3_data_chi2 = probfit.Chi2Regression(probfit.linear,
             x=ch3_weighted_xvals,
             y=(data_toushek[0]/exp_IPZ2),
-            error=np.sqrt((data_toushek[0]/exp_IPZ2)),
+            #error=np.sqrt((data_toushek[0]/exp_IPZ2)),
+            error = ch3_data_error
             )
     ch3_data_minu = iminuit.Minuit(ch3_data_chi2)
     ch3_data_minu.migrad()
@@ -2843,7 +2880,8 @@ def compare_toushek(datapath, simpath):
     ch4_data_chi2 = probfit.Chi2Regression(probfit.linear,
             x=ch4_weighted_xvals,
             y=(data_toushek[2]/exp_IPZ2),
-            error=(data_toushek[2]/exp_IPZ2)/np.sqrt(subrun_times)
+            #error=(data_toushek[2]/exp_IPZ2)/np.sqrt(subrun_times)
+            error = ch4_data_error
             )
     ch4_data_minu = iminuit.Minuit(ch4_data_chi2)
     ch4_data_minu.migrad()
@@ -2957,12 +2995,15 @@ def compare_toushek(datapath, simpath):
     ax1.errorbar(
                 ch3_weighted_xvals,
                 (data_toushek[0]/exp_IPZ2),
-                yerr=(data_toushek[0]/exp_IPZ2)/np.sqrt(subrun_times),
+                #yerr=(data_toushek[0]/exp_IPZ2)/np.sqrt(subrun_times),
+                #yerr = (data_toushek[0]/exp_IPZ2) / ch3_data_error,
+                yerr = ch3_data_error*(data_toushek[0]/exp_IPZ2),
                 fmt='o',
                 #ms=5.8,
                 color='C0',
                 label='TPC 3 Exp')
 
+    '''
     ax1.errorbar(
                 ch3_weighted_xvals,
                 (ch3_weighted_rates)/exp_IPZ2,
@@ -2975,16 +3016,20 @@ def compare_toushek(datapath, simpath):
                 mew=1.0,
                 label='TPC 3 MC',
                 )
+    '''
 
     ax1.errorbar(
                 ch4_weighted_xvals,
                 (data_toushek[2]/exp_IPZ2),
-                yerr=(data_toushek[2]/exp_IPZ2)/np.sqrt(subrun_times),
+                #yerr=(data_toushek[2]/exp_IPZ2)/np.sqrt(subrun_times),
+                #yerr = (data_toushek[2]/exp_IPZ2) / ch4_data_error,
+                yerr = ch4_data_error*(data_toushek[2]/exp_IPZ2),
                 fmt='o',
                 #ms=5.8,
                 color='C1',
                 label='TPC 4 Exp')
 
+    '''
     ax1.errorbar(
                 ch4_weighted_xvals,
                 (ch4_weighted_rates)/exp_IPZ2,
@@ -2995,6 +3040,7 @@ def compare_toushek(datapath, simpath):
                 mew=1.0,
                 mfc='none',
                 label='TPC 4 MC')
+    '''
 
 
     ((ch3_data_x, ch3_data_y), _, (ch3_data_pdf_x, ch3_data_pdf_y), _) = (
@@ -3019,8 +3065,8 @@ def compare_toushek(datapath, simpath):
 
     ch3_sim_pdf_y[-1] = parameters['c']
     ch3_sim_pdf_x[-1] = 0.0
-    ax1.plot(ch3_sim_pdf_x, ch3_sim_pdf_y, lw=2, color='C0', ls=':',
-            dashes=(1.5,5))
+    #ax1.plot(ch3_sim_pdf_x, ch3_sim_pdf_y, lw=2, color='C0', ls=':',
+    #        dashes=(1.5,5))
 
     ((ch4_weighted_sim_x, ch4_weighted_sim_y), _, (ch4_sim_pdf_x, ch4_sim_pdf_y),
             _) = (ch4_weighted_sim_chi2.draw(ch4_weighted_sim_minu,
@@ -3028,8 +3074,8 @@ def compare_toushek(datapath, simpath):
     parameters = ch4_weighted_sim_minu.values
     ch4_sim_pdf_y[-1] = parameters['c']
     ch4_sim_pdf_x[-1] = 0.0
-    ax1.plot(ch4_sim_pdf_x, ch4_sim_pdf_y, lw=2, color='C1', ls=':',
-            dashes=(1.5,5))
+    #ax1.plot(ch4_sim_pdf_x, ch4_sim_pdf_y, lw=2, color='C1', ls=':',
+    #        dashes=(1.5,5))
 
     ax1.set_xlim(0,plt.xlim()[1])
     ax1.set_ylim(0,plt.ylim()[1])
@@ -6565,7 +6611,7 @@ def main():
     #energy_cal(v50_simpath, ler_inpath)
     #energy_cal(v50_simpath, her_inpath)
 
-    hitOR_study(v52_simpath, ler_inpath)
+    #hitOR_study(v52_simpath, ler_inpath)
     
 if __name__ == "__main__":
     main()
