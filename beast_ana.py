@@ -2872,7 +2872,7 @@ def compare_toushek(datapath, simpath):
             x=ch3_weighted_xvals,
             y=(data_toushek[0]/exp_IPZ2),
             #error=np.sqrt((data_toushek[0]/exp_IPZ2)),
-            error = ch3_data_error
+            error = ch3_data_error*(data_toushek[0]/exp_IPZ2),
             )
     ch3_data_minu = iminuit.Minuit(ch3_data_chi2)
     ch3_data_minu.migrad()
@@ -2881,7 +2881,7 @@ def compare_toushek(datapath, simpath):
             x=ch4_weighted_xvals,
             y=(data_toushek[2]/exp_IPZ2),
             #error=(data_toushek[2]/exp_IPZ2)/np.sqrt(subrun_times)
-            error = ch4_data_error
+            error = ch4_data_error*(data_toushek[0]/exp_IPZ2),
             )
     ch4_data_minu = iminuit.Minuit(ch4_data_chi2)
     ch4_data_minu.migrad()
@@ -2890,7 +2890,7 @@ def compare_toushek(datapath, simpath):
     ch3_weighted_sim_chi2 = probfit.Chi2Regression(probfit.linear,
             x=ch3_weighted_xvals,
             y=(ch3_weighted_rates)/exp_IPZ2,
-            error=(ch3_weighted_rates)/exp_IPZ2/np.sqrt(subrun_times)
+            error=(ch3_weighted_rates/exp_IPZ2)/np.sqrt(ch3_weighted_rates*subrun_times),
             )
     ch3_weighted_sim_minu = iminuit.Minuit(ch3_weighted_sim_chi2)
     ch3_weighted_sim_minu.migrad()
@@ -2902,7 +2902,8 @@ def compare_toushek(datapath, simpath):
     ch4_weighted_sim_chi2 = probfit.Chi2Regression(probfit.linear,
             x=ch4_weighted_xvals,
             y=(ch4_weighted_rates)/exp_IPZ2,
-            error=(ch4_weighted_rates)/exp_IPZ2/np.sqrt(subrun_times)
+            #error=(ch4_weighted_rates)/exp_IPZ2/np.sqrt(subrun_times)
+            error=(ch4_weighted_rates/exp_IPZ2)/np.sqrt(ch4_weighted_rates*subrun_times),
             )
     ch4_weighted_sim_minu = iminuit.Minuit(ch4_weighted_sim_chi2)
     ch4_weighted_sim_minu.migrad()
@@ -2995,19 +2996,16 @@ def compare_toushek(datapath, simpath):
     ax1.errorbar(
                 ch3_weighted_xvals,
                 (data_toushek[0]/exp_IPZ2),
-                #yerr=(data_toushek[0]/exp_IPZ2)/np.sqrt(subrun_times),
-                #yerr = (data_toushek[0]/exp_IPZ2) / ch3_data_error,
                 yerr = ch3_data_error*(data_toushek[0]/exp_IPZ2),
                 fmt='o',
                 #ms=5.8,
                 color='C0',
                 label='TPC 3 Exp')
 
-    '''
     ax1.errorbar(
                 ch3_weighted_xvals,
                 (ch3_weighted_rates)/exp_IPZ2,
-                yerr=ch3_weighted_rates/exp_IPZ2/np.sqrt(subrun_times),
+                yerr=(ch3_weighted_rates/exp_IPZ2)/np.sqrt(ch3_weighted_rates*subrun_times),
                 fmt='^',
                 #ms=6.2,
                 color='C0',
@@ -3016,31 +3014,26 @@ def compare_toushek(datapath, simpath):
                 mew=1.0,
                 label='TPC 3 MC',
                 )
-    '''
 
     ax1.errorbar(
                 ch4_weighted_xvals,
                 (data_toushek[2]/exp_IPZ2),
-                #yerr=(data_toushek[2]/exp_IPZ2)/np.sqrt(subrun_times),
-                #yerr = (data_toushek[2]/exp_IPZ2) / ch4_data_error,
                 yerr = ch4_data_error*(data_toushek[2]/exp_IPZ2),
                 fmt='o',
                 #ms=5.8,
                 color='C1',
                 label='TPC 4 Exp')
 
-    '''
     ax1.errorbar(
                 ch4_weighted_xvals,
                 (ch4_weighted_rates)/exp_IPZ2,
-                yerr=ch4_weighted_rates/exp_IPZ2/np.sqrt(subrun_times),
+                yerr=(ch4_weighted_rates/exp_IPZ2)/np.sqrt(ch4_weighted_rates*subrun_times),
                 fmt='^',
                 #ms=6.2,
                 color='C1',
                 mew=1.0,
                 mfc='none',
                 label='TPC 4 MC')
-    '''
 
 
     ((ch3_data_x, ch3_data_y), _, (ch3_data_pdf_x, ch3_data_pdf_y), _) = (
@@ -3049,14 +3042,14 @@ def compare_toushek(datapath, simpath):
     parameters = ch3_data_minu.values
     ch3_data_pdf_y[-1] = parameters['c']
     ch3_data_pdf_x[-1] = 0.0
-    ax1.plot(ch3_data_pdf_x, ch3_data_pdf_y, lw=2, color='C0', ls='solid')
+    #ax1.plot(ch3_data_pdf_x, ch3_data_pdf_y, lw=2, color='C0', ls='solid')
 
     ((ch4_data_x, ch4_data_y), _, (ch4_data_pdf_x, ch4_data_pdf_y), _) = (
             ch4_data_chi2.draw(ch4_data_minu, print_par=False, no_plot=True) )
     parameters = ch4_data_minu.values
     ch4_data_pdf_y[-1] = parameters['c']
     ch4_data_pdf_x[-1] = 0.0
-    ax1.plot(ch4_data_pdf_x, ch4_data_pdf_y, lw=2, color='C1', ls='solid')
+    #ax1.plot(ch4_data_pdf_x, ch4_data_pdf_y, lw=2, color='C1', ls='solid')
 
     ((ch3_weighted_sim_x, ch3_weighted_sim_y), _, (ch3_sim_pdf_x, ch3_sim_pdf_y), _) = (
             ch3_weighted_sim_chi2.draw(ch3_weighted_sim_minu, print_par=False,
@@ -3065,8 +3058,8 @@ def compare_toushek(datapath, simpath):
 
     ch3_sim_pdf_y[-1] = parameters['c']
     ch3_sim_pdf_x[-1] = 0.0
-    #ax1.plot(ch3_sim_pdf_x, ch3_sim_pdf_y, lw=2, color='C0', ls=':',
-    #        dashes=(1.5,5))
+    ax1.plot(ch3_sim_pdf_x, ch3_sim_pdf_y, lw=2, color='C0', ls=':',
+            dashes=(1.5,5))
 
     ((ch4_weighted_sim_x, ch4_weighted_sim_y), _, (ch4_sim_pdf_x, ch4_sim_pdf_y),
             _) = (ch4_weighted_sim_chi2.draw(ch4_weighted_sim_minu,
@@ -3074,8 +3067,8 @@ def compare_toushek(datapath, simpath):
     parameters = ch4_weighted_sim_minu.values
     ch4_sim_pdf_y[-1] = parameters['c']
     ch4_sim_pdf_x[-1] = 0.0
-    #ax1.plot(ch4_sim_pdf_x, ch4_sim_pdf_y, lw=2, color='C1', ls=':',
-    #        dashes=(1.5,5))
+    ax1.plot(ch4_sim_pdf_x, ch4_sim_pdf_y, lw=2, color='C1', ls=':',
+            dashes=(1.5,5))
 
     ax1.set_xlim(0,plt.xlim()[1])
     ax1.set_ylim(0,plt.ylim()[1])
