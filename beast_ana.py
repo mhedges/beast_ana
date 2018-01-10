@@ -1,4 +1,4 @@
-import emoji
+#import emoji
 
 import os
 import sys
@@ -1081,6 +1081,7 @@ def energy_eff_study(gain_path):
         for f in files:
             r_file = str(subdir) + str('/') + str(f)
 
+            if '.root' not in f: continue
             data = root2rec(r_file, branches=branches)
 
             print(r_file)
@@ -1223,7 +1224,6 @@ def energy_eff_study(gain_path):
     div_phi_errs = div_phi * np.sqrt(1.0/np_hist_nphi[0] +
             1.0/np_hist_allphi[0])
 
-
     color = 'k'
 
     # 'Efficiency' plot individually
@@ -1251,27 +1251,39 @@ def energy_eff_study(gain_path):
     ax1.set_ylabel('Efficiency', ha='right', y=1.0)
     ax1.set_xlim(0,250)
     ax1.set_ylim(-0.1, 1.25)
-    h.savefig('neutron_efficiency_energy.pdf')
+    #h.savefig('neutron_efficiency_energy.pdf')
 
     g, (ax2) = plt.subplots(1,1)
     x = np.linspace(0, 180, 9)
-    ax2.errorbar(x, div_theta, yerr=div_theta_errs, fmt='o', capsize=0,
-            color=color)
+    ax2.errorbar(x,
+                 div_theta,
+                 yerr=div_theta_errs,
+                 fmt='o',
+                 capsize=0,
+                 color=color)
     ax2.set_xlabel('$\\theta$ [$^{\circ}$]', ha='right', x=1.0)
     ax2.set_ylabel('Efficiency', ha='right', y=1.0)
     ax2.set_ylim(0.0, plt.ylim()[1])
     ax2.set_xticks(x[::2])
-    g.savefig('detection_efficiency_vs_theta.pdf')
+    #g.savefig('detection_efficiency_vs_theta.pdf')
 
     f, (ax3) = plt.subplots(1,1)
     x = np.linspace(-90.0, 90.0, 9)
-    ax3.errorbar(x, div_phi, yerr=div_phi_errs, fmt='o', capsize=0,
-            color=color)
+    ax3.errorbar(x,
+                 div_phi,
+                 yerr=div_phi_errs,
+                 fmt='o',
+                 capsize=0,
+                 color=color)
     ax3.set_xlabel('$\phi$ [$^{\circ}$]', ha='right', x=1.0)
     ax3.set_ylabel('Efficiency', ha='right', y=1.0)
     ax3.set_ylim(0.0, plt.ylim()[1])
     ax3.set_xticks(x[::2])
-    f.savefig('detection_efficiency_vs_phi.pdf')
+    #f.savefig('detection_efficiency_vs_phi.pdf')
+
+    print(np_hist_ntheta)
+    print(div_theta * 1.0/np.sqrt(np_hist_ntheta[0]))
+    print(div_theta_errs)
 
     plt.show()
 
@@ -1642,7 +1654,7 @@ def energy_study(datapath, simpath, beam):
 
     print(sim_tlengths[touschek==1])
     print(np.max(sim_tlengths[touschek==1]))
-    input('well?')
+    #input('well?')
 
     # Selections in sim
     ch3_touschek_sels = (
@@ -1728,7 +1740,7 @@ def energy_study(datapath, simpath, beam):
             np.max(data_E[ch3_data_sels])] )
 
         (ch4_data_n, ch4_data_bins, ch4_data_patches) = plt.hist(data_E[ch4_data_sels], bins=25, range=[0,
-            np.max(data_E[ch4_data_sels])] )
+            np.max(data_E[ch3_data_sels])] )
 
     elif 'v3.1' in datapath :
         (ch3_data_n, ch3_data_bins, ch3_data_patches) = plt.hist(ch3_data_E, bins=25, range=[0,
@@ -1792,8 +1804,8 @@ def energy_study(datapath, simpath, beam):
     ch4_weighted_rate[1] = ( (subrun_BeamGas * len(sim_E[ch4_beamgas_sels]) ) /
                         (5.0*3600.0 * (SAD_beamcurrent*SAD_p*SAD_z**2) ) )
 
-    print(ch3_weighted_rate)
-    print(ch4_weighted_rate)
+    #print(ch3_weighted_rate)
+    #print(ch4_weighted_rate)
 
     print('Printing results from reweighting MC ... ')
     print('TPC 3: BG : T:', (ch3_weighted_rate[1]*subrun_times).sum(),
@@ -1933,32 +1945,61 @@ def energy_study(datapath, simpath, beam):
     print('Printing number of recoils from weighted simulation ... ')
     print('Ch 3: BG: T: ', ch3_beamgas_n.sum(), ch3_touschek_n.sum())
     print('Ch 4: BG: T: ', ch4_beamgas_n.sum(), ch4_touschek_n.sum())
-    input('well?')
+    #input('well?')
 
     ### Plots
     from matplotlib.ticker import ScalarFormatter
     f = plt.figure()
     ax1 = f.add_subplot(111)
 
-    ax1.hist([ch3_data_bin_centers,ch3_data_bin_centers], bins=ch3_data_bins,
+    data =ax1.errorbar(ch3_data_bin_centers,
+                        ch3_data_n,
+                        yerr=np.sqrt(ch3_data_n),
+                        fmt='o',
+                        color='black',
+                        label='Experiment')
+
+    touschek_fit =ax1.plot(ch3_touschek_pdf_x,
+                            ch3_touschek_pdf_y,
+                            color='xkcd:denim',
+                            lw=2,
+                            label='MC Touschek Fit',
+                            linestyle='dashed',
+                            )
+
+    bg_fit =ax1.plot(ch3_beamgas_pdf_x,
+                      ch3_beamgas_pdf_y,
+                      color='xkcd:pumpkin',
+                      lw=2,
+                      label='MC Beam-gas Fit',
+                      linestyle='dashed',
+                      )
+
+    mc_hist =ax1.hist([ch3_data_bin_centers,ch3_data_bin_centers], bins=ch3_data_bins,
             weights=ch3_bkg_weights,
             range=[0,np.max(ch3_data_E)],
             label=['MC Touschek ','MC Beam Gas'],
-            stacked=True, color=['C0','C1'])
+            stacked=False, color=['C0','C1'],
+            )
 
-    ax1.errorbar(ch3_data_bin_centers, ch3_data_n, yerr=np.sqrt(ch3_data_n), fmt='o', color='black',
-            label='Experiment')
-    ax1.plot(ch3_data_pdf_x, ch3_data_pdf_y, color='C3', lw=2)
-    ax1.plot(ch3_touschek_pdf_x, ch3_touschek_pdf_y, color='C2', lw=2)
-    ax1.plot(ch3_beamgas_pdf_x, ch3_beamgas_pdf_y, color='C2', lw=2)
+    data_fit =ax1.plot(ch3_data_pdf_x, 
+                        ch3_data_pdf_y,
+                        color='k',
+                        lw=2,
+                        label='Experiment Fit',
+                        linestyle='dashed',
+                        )
+
     ax1.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
     ax1.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
     ax1.set_xlabel('Detected Energy [keV]', ha='right', x=1.0)
     ax1.set_ylabel('Events per 80 keV', ha='right', y=1.0)
     ax1.set_ylim(1E-1,1E4)
+    x_max = plt.xlim()[1]
+    ax1.set_xlim(0,plt.xlim()[1])
     ax1.set_yscale('log')
     ax1.grid(b=False)
-    ax1.legend(loc='best')
+    ax1.legend(loc='best',ncol=2)
     plt.tick_params(axis='both', which='major', labelsize=20)
     figname = 'ch3_recoilE_datavsMC_' + beam + '.pdf'
     f.savefig(figname)
@@ -1967,22 +2008,45 @@ def energy_study(datapath, simpath, beam):
     g = plt.figure()
     ax2 = g.add_subplot(111)
 
+    ax2.errorbar(ch4_data_bin_centers, ch4_data_n, yerr=np.sqrt(ch4_data_n), fmt='o', color='black',
+            label='Experiment')
+
+    ax2.plot(ch4_touschek_pdf_x,
+             ch4_touschek_pdf_y,
+             color='xkcd:denim',
+             lw=2,
+             label='MC Touschek Fit',
+             linestyle='dashed'
+             )
+
+    ax2.plot(ch4_beamgas_pdf_x,
+             ch4_beamgas_pdf_y,
+             color='xkcd:pumpkin',
+             lw=2,
+             label='MC Beam-gas Fit',
+             linestyle='dashed'
+             )
+
     ax2.hist([ch4_data_bin_centers,ch4_data_bin_centers], bins=ch4_data_bins,
             weights=ch4_bkg_weights,
             range=[0,np.max(ch4_data_E)],
             label=['MC Touschek','MC Beam Gas'],
-            stacked=True, color=['C0','C1'])
+            stacked=False, color=['C0','C1']
+            )
 
-    ax2.errorbar(ch4_data_bin_centers, ch4_data_n, yerr=np.sqrt(ch4_data_n), fmt='o', color='black',
-            label='Experiment')
-    ax2.plot(ch4_data_pdf_x, ch4_data_pdf_y, color='C3', lw=2)
-    ax2.plot(ch4_touschek_pdf_x, ch4_touschek_pdf_y, color='C2', lw=2)
-    ax2.plot(ch4_beamgas_pdf_x, ch4_beamgas_pdf_y, color='C2', lw=2)
+    ax2.plot(ch4_data_pdf_x,
+             ch4_data_pdf_y,
+             color='k',
+             lw=2,
+             linestyle='dashed'
+             )
+
     ax2.xaxis.set_major_formatter(ScalarFormatter(useMathText=True))
     ax2.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
     ax2.set_xlabel('Detected Energy [keV]', ha='right', x=1.0)
     ax2.set_ylabel('Events per 80 keV', ha='right', y=1.0)
     ax2.set_ylim(1E-1,1E4)
+    ax2.set_xlim(0,x_max)
     ax2.set_yscale('log')
     ax2.grid(b=False)
     #ax2.legend(loc='best')
@@ -3042,14 +3106,14 @@ def compare_toushek(datapath, simpath):
     parameters = ch3_data_minu.values
     ch3_data_pdf_y[-1] = parameters['c']
     ch3_data_pdf_x[-1] = 0.0
-    #ax1.plot(ch3_data_pdf_x, ch3_data_pdf_y, lw=2, color='C0', ls='solid')
+    ax1.plot(ch3_data_pdf_x, ch3_data_pdf_y, lw=2, color='C0', ls='solid')
 
     ((ch4_data_x, ch4_data_y), _, (ch4_data_pdf_x, ch4_data_pdf_y), _) = (
             ch4_data_chi2.draw(ch4_data_minu, print_par=False, no_plot=True) )
     parameters = ch4_data_minu.values
     ch4_data_pdf_y[-1] = parameters['c']
     ch4_data_pdf_x[-1] = 0.0
-    #ax1.plot(ch4_data_pdf_x, ch4_data_pdf_y, lw=2, color='C1', ls='solid')
+    ax1.plot(ch4_data_pdf_x, ch4_data_pdf_y, lw=2, color='C1', ls='solid')
 
     ((ch3_weighted_sim_x, ch3_weighted_sim_y), _, (ch3_sim_pdf_x, ch3_sim_pdf_y), _) = (
             ch3_weighted_sim_chi2.draw(ch3_weighted_sim_minu, print_par=False,
@@ -3267,7 +3331,7 @@ def compare_angles(datapath, simpath, beam):
                     test*(t_frac3 + bg_frac3),
                     test*bg_frac3,
                     ],
-                color=['C0','C4','C3'], bins=data_edges,
+                color=['C0','C2','C1'], bins=data_edges,
                 label=['Fitted MC Touschek','Fitted MC Sum', 'Fitted MC Beam Gas'],
                 #stacked=True,
                 )
@@ -3421,7 +3485,7 @@ def compare_angles(datapath, simpath, beam):
                     ],
                 color=['C0','C1',], bins=data_edges,
                 label=['MC Touschek','MC Beam Gas'],
-                stacked=True,
+                stacked=False,
                 )
 
         # Plot Touschek distribution obtained from fit
@@ -3592,7 +3656,7 @@ def compare_angles(datapath, simpath, beam):
                     test*(t_frac3+bg_frac3),
                     test*bg_frac3,
                     ],
-                color=['C0','C4','C3',], bins=data_edges,
+                color=['C0','C2','C1',], bins=data_edges,
                 label=['Fitted MC Touschek','Fitted MC Sum','Fitted MC Beam Gas'],
                 )
 
@@ -3755,7 +3819,7 @@ def compare_angles(datapath, simpath, beam):
                     test*(t_frac4+bg_frac4),
                     test*bg_frac4,
                     ],
-                color=['C0','C4','C3',], bins=data_edges,
+                color=['C0','C2','C1',], bins=data_edges,
                 label=['Fitted MC Touschek','Fitted MC Sum','Fitted MC Beam Gas'],
                 )
 
@@ -6576,17 +6640,17 @@ def main():
 
     #compare_toushek(v31_datapath, v52_simpath)
     #compare_toushek(v31_datapath, v50hrs_simpath)
-    compare_toushek(v31_datapath, v7_simpath)
+    #compare_toushek(v31_datapath, v7_simpath)
 
     #compare_angles(v31_datapath, v52_simpath)
     #compare_angles(v31_datapath, v7_simpath, beam='LER')
 
     #energy_study(v31_datapath, v52_simpath)
     #energy_study(v31_datapath, v50hrs_simpath)
-    #energy_study(v31_datapath, v7_simpath, beam='HER')
+    energy_study(v31_datapath, v7_simpath, beam='HER')
 
     #gain_study(inpath)
-    #energy_eff_study(inpath)
+    #energy_eff_study(ler_inpath)
     #pid_study(inpath, v50_simpath)
 
     #event_inspection(inpath)
